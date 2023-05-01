@@ -11,6 +11,7 @@
     (prop :FuzzyMap<Song> songs (new FuzzyMap<Song>))
     (prop :FuzzyMap<Prop> props (new FuzzyMap<Prop>))
     (prop :Map<String,VoiceTrack> voiceTracks (new Map))
+    (prop :Map<String,CustomDialogTypeHandler<Actor>> customDialogTypeHandlers (new Map))
     (prop :FuzzyMap<FuzzyMap<VoiceLine>> voiceLines (new FuzzyMap<FuzzyMap<VoiceLine>>))
     // Used to give unique, persistent IDs to voice tracks
     (prop :Map<String,Int> voiceTracksPerActor (new Map))
@@ -49,7 +50,8 @@
     (method :Void showDialog [actorName dialogType wryly text cc]
         (processIntercut actorName
             (makeCC
-                (let [cc ->:Void {(director.hideDialog) (cc)}
+                (let [&mut :Continuation hideCustomDialog (makeCC null)
+                        cc ->:Void {(hideCustomDialog)(director.hideDialog) (cc)}
                         &mut skipCC cc]
                     // When an actorName is given, check for a voiced line to play.
                     // Otherwise, assume it is un-voiced super text
@@ -86,7 +88,13 @@
                                     (director.playVoiceTrack (dictGet voiceTracks trackKey) 1 start end cc)
                                     (set skipCC ->:Void {(director.stopVoiceTrack (dictGet voiceTracks trackKey)) (cc)}))
                                 (otherwise)))
-                    (director.showDialog actorName dialogType wryly text skipCC)))))
+                    (case dialogType
+                        ((Custom type character args)
+                            (ifLet [handler (dictGet customDialogTypeHandlers type)]
+                                    (let [cleanupFunc (handler actorName character wryly args text skipCC)]
+                                        (set hideCustomDialog cleanupFunc))
+                                (throw "No handler for custom dialog type $type")))
+                        (otherwise (director.showDialog actorName dialogType wryly text skipCC)))))))
 
     (method newVoiceTrack [actorName :VoiceTrack track :String lineJson]
         (let [actorNumVoiceTracks (or (dictGet voiceTracksPerActor actorName) 0)
@@ -514,6 +522,11 @@
             (showDialog actorName (ifLet [charOnScreen (try (dictGet .characters (_currentScene) actorName) (catch [e] null))]
                                             (OnScreen charOnScreen)
                                         (FromPhone (dictGet actors actorName))) wryly text cc))))
+
+(hollywooMethod customSpeech true [type actorName wryly args text :Continuation cc]
+    (processIntercut actorName
+        (makeCC
+            (showDialog actorName (Custom type (dictGet .characters (_currentScene) actorName) args) wryly text cc))))
 
 (hollywooMethod cutToBlack true [seconds :Continuation cc]
     (director.showBlackScreen)

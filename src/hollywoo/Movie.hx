@@ -36,6 +36,9 @@ typedef VoiceLine = {
     ?alts:Array<VoiceLine>
 };
 
+// (speakerName, character, wryly, args, text, cc) -> cleanup function
+typedef CustomDialogTypeHandler<Actor> = (String, Character<Actor>, String, Array<Dynamic>, String, Continuation) -> (Void->Void);
+
 enum CreditsLine {
     OneColumn(s:String);
     TwoColumn(left:String, right:String);

@@ -30,7 +30,7 @@ enum SpeechType<Actor> {
     TextMessage(actor:Actor);
     FromPhone(actor:Actor);
     OnScreen(character:Character<Actor>);
-    Custom(type:String, actor:Actor, args:Dynamic);
+    Custom(type:String, character:Character<Actor>, args:Dynamic);
 }
 
 typedef StageProp<Prop> = {

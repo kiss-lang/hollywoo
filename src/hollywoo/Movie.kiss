@@ -1,6 +1,9 @@
 (defMacro makeCC [&body b]
     `->:Void {,@b})
 
+(function dynamicArray [&rest :Array<Dynamic> elements]
+    elements)
+
 // This file is designed to be loaded again by subclasses, with macroVar "subclass" set
 (#unless subclass
 

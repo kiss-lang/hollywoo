@@ -83,6 +83,6 @@ interface Director<Set:Cloneable<Set>, Actor, Sound, Song, Prop, VoiceTrack, Cam
 
     function rollCredits(credits:Array<CreditsLine>, cc:Continuation):Void;
 
-    function doLoading(_load:Void->Void, cc:Continuation):Void;
+    function doLoading(_load:Array<Void->Void>, cc:Continuation):Void;
     function cleanup():Void;
 }

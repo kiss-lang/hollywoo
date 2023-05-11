@@ -36,25 +36,28 @@
 (collectBlocks cleanup (#when (StringTools.contains kissFile className) (cc)))
 
 (defMacro end []
-    `{
-        (method doPreload [:Void->Void cc]
-            (director.showTitleCard ["LOADING"]
-                (makeCC
-                    (set isLoading true)
-                    (director.doLoading ->:Void {
-                        (collectedBlocks preload)
-                        (set isLoading false)
-                    } (makeCC
-                        (director.hideTitleCard)
-                        (cc))))))
-        (method doCleanup []
-            (director.cleanup)
-            (set lastInstructionPointer -2)
-            (collectedBlocks cleanup))
-        (doCleanup)
-        (when onComplete
-            (onComplete))
-    })
+    (let [collectedPreloads (getCollectedExps "preload")
+            preloadFuncs
+                (for exp collectedPreloads
+                    `->:Void {,exp})]
+        `{
+            (method doPreload [:Void->Void cc]
+                (director.showTitleCard ["LOADING"]
+                    (makeCC
+                        (set isLoading true)
+                        (director.doLoading ,preloadFuncs
+                            (makeCC
+                                (set isLoading false)
+                                (director.hideTitleCard)
+                                (cc))))))
+            (method doCleanup []
+                (director.cleanup)
+                (set lastInstructionPointer -2)
+                (collectedBlocks cleanup))
+            (doCleanup)
+            (when onComplete
+                (onComplete))
+        }))
 
 (defReaderMacro &bof "" [stream] `(#when (StringTools.contains kissFile className) (doPreload cc)))
 (defReaderMacro &eof "" [stream] `(#when (StringTools.contains kissFile className) (end)))

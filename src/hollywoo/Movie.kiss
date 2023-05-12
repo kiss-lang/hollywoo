@@ -20,6 +20,10 @@
     (prop :Map<String,Int> voiceTracksPerActor (new Map))
 
     (prop &mut :DelayHandling delayHandling AutoWithSkip)
+    
+    (prop &mut :String lastDelay "")
+    (prop &mut :Float lastDelayLength 0)
+
 
     // Mutable representation of frames in time:
     (prop :FuzzyMap<Scene<Set,Actor,Prop,Camera>> scenes (new FuzzyMap<Scene<Set,Actor,Prop,Camera>>))
@@ -230,6 +234,13 @@
                 ->cc (director.showPauseMenu cc))
             
             (#when debug
+                (shortcutHandler.registerItem "[d]efine [d]elay"
+                    ->cc
+                        (director.enterString "Redefine $lastDelay from $lastDelayLength sec?" 
+                            ->lengthStr
+                                (let [length (Std.parseFloat lengthStr)]
+                                    (delayLengths.put lastDelay (new DelayLength length))
+                                    (cc))))
                 (shortcutHandler.registerItem "[d]efine [p]osition"
                     ->cc
                         (director.chooseString "Which position?" (dictGet positionsInScene sceneKey)
@@ -304,7 +315,11 @@
 (hollywooMethod :Void delay true [:Dynamic length :Continuation cc]
     (let [sec (typeCase [length]
                     ([:Float sec] sec)
-                    ([:String key] .length (delayLengths.get key))
+                    ([:String key]
+                        (let [lengthFloat .length (delayLengths.get key)]
+                            (set lastDelay key)
+                            (set lastDelayLength lengthFloat)
+                            lengthFloat))
                     (never otherwise))]
         (case delayHandling
             (Auto

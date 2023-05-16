@@ -54,11 +54,16 @@
                     (setScene sceneForActor cc)
                     (return))))
         (cc))
+    
+    (prop &mut :Void->Void _hideCustomDialog null)
     (method :Void showDialog [actorName dialogType wryly text cc]
+        // Hide custom dialog when the next dialog appears unless HIDECUSTOMDIALOG is called manually:
+        (when _hideCustomDialog
+            (_hideCustomDialog)
+            (set _hideCustomDialog null))
         (processIntercut actorName
             (makeCC
-                (let [&mut :Continuation hideCustomDialog (makeCC null)
-                        cc ->:Void {(hideCustomDialog)(director.hideDialog) (cc)}
+                (let [cc ->:Void {(director.hideDialog) (cc)}
                         &mut skipCC cc]
                     // When an actorName is given, check for a voiced line to play.
                     // Otherwise, assume it is un-voiced super text
@@ -99,7 +104,7 @@
                         ((Custom type character args)
                             (ifLet [handler (dictGet customDialogTypeHandlers type)]
                                     (let [cleanupFunc (handler actorName character wryly args text skipCC)]
-                                        (set hideCustomDialog cleanupFunc))
+                                        (set _hideCustomDialog cleanupFunc))
                                 (throw "No handler for custom dialog type $type")))
                         (otherwise (director.showDialog actorName dialogType wryly text skipCC)))))))
 
@@ -311,6 +316,11 @@
                     (if ,canSkip methodCall (b.callSymbol "noSkip" [methodCall]))))
             (#unless subclass (method ,nameAndType ,argList ,@body))
         }))
+
+(hollywooMethod :Void hideCustomDialog true [:Continuation cc]
+    (when _hideCustomDialog
+        (_hideCustomDialog)
+        (set _hideCustomDialog null)))
 
 (hollywooMethod :Void delay true [:Dynamic length :Continuation cc]
     (let [sec (typeCase [length]

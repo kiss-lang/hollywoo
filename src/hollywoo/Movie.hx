@@ -10,6 +10,7 @@ import hollywoo.Scene;
 import hollywoo.Director;
 import hollywoo.StagePosition;
 import haxe.Json;
+import haxe.io.Path;
 import uuid.Uuid;
 import haxe.ds.Option;
 import kiss_tools.JsonMap;

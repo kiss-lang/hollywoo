@@ -200,6 +200,55 @@
                 position)
             (otherwise (throw "Not a position or position key: $position"))))
 
+    (#when (or sys hxnodejs)
+        (prop :FuzzyMap<FuzzyMap<String>> assetPaths (new FuzzyMap))
+        (prop :Array<Array<String>> loadedCredits [])
+        (method _indexAssetPaths [:String assetDir]
+            (let [dirParts (assetDir.split "/")]
+                (doFor part dirParts
+                    (dictSet assetPaths part (new FuzzyMap))))
+            (walkDirectory "" assetDir
+                ->file (ifLet [[:: ...dirs basename] (file.split "/")
+                                    ext (Path.extension file)
+                                    noExt (Path.withoutExtension file)
+                                    overrideEndings [
+                                        "Edited"
+                                        "-edited"
+                                    ]
+                                    overrideExtensions [
+                                        "$ext"
+                                        "png" // It's common to edit a jpg into a png
+                                        "wav" // or an ogg into a wav
+                                    ]
+                                    overridePath file]
+                                {
+                                    (unless (= ext "tsv")
+                                        (doFor [ending extension] (intersect overrideEndings overrideExtensions)
+                                            (let [possibleOverride "${noExt}${ending}.${extension}"]
+                                                (when (sys.FileSystem.exists possibleOverride)
+                                                    (#when debug
+                                                        (print "$file overridden by $possibleOverride"))
+                                                    (set overridePath possibleOverride)
+                                                    (break)))))
+                                    (doFor dir dirs
+                                        (dictSet (dictGet assetPaths dir) basename overridePath))
+                                }
+                            (print "Warning: asset $file cannot be indexed"))
+                ->folderToFilter (assertLet [[:: ... dir] (folderToFilter.split "/")]
+                                    (unless (assetPaths.existsExactly dir)
+                                        (dictSet assetPaths dir (new FuzzyMap)))
+                                    false)))
+
+        (method assetPath [directory filename]
+            (let [dirMap (dictGet assetPaths directory)
+                    basename (FuzzyMapTools.bestMatch dirMap filename)
+                    noExt (Path.withoutExtension basename)
+                    tsv "${noExt}.tsv"]
+                (when (dirMap.exists tsv)
+                    (let [tsvContent (sys.io.File.getContent (dictGet dirMap tsv))]
+                        (loadedCredits.push ~(tsvContent.split "\t"))))
+                (dictGet dirMap basename))))
+
     (defNew
         [
             // "View" in the Model-View-Controller architecture:
@@ -286,6 +335,10 @@
         (super)))
 
 // END Parent class definitions
+
+(defMacro indexAssetPaths [dir]
+    `(preload
+        (_indexAssetPaths ,dir)))
 
 // Some real magic happens here. This macro defines a method, AND a reader macro
 // for calling it with cc passed automatically if cc is an argument.
@@ -563,6 +616,7 @@
 // TODO themedRollCredits
 (hollywooMethod rollCredits true [:String creditsTSV :Continuation cc]
     (director.rollCredits
+        // TODO insert loadedCredits
         (for line (.split .content (Stream.fromString creditsTSV) "\n")
             (case (line.split "\t")
                 ((unless line [_])

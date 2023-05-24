@@ -244,9 +244,10 @@
                     basename (FuzzyMapTools.bestMatch dirMap filename)
                     noExt (Path.withoutExtension basename)
                     tsv "${noExt}.tsv"]
-                (when (dirMap.exists tsv)
-                    (let [tsvContent (sys.io.File.getContent (dictGet dirMap tsv))]
-                        (loadedCredits.push ~(tsvContent.split "\t"))))
+                (if (dirMap.existsExactly tsv)
+                        (let [tsvContent (sys.io.File.getContent ~(dictGet dirMap tsv))]
+                            (loadedCredits.push ~(tsvContent.split "\t")))
+                    (print "Warning: no credit tsv file for ${directory}/${filename}"))
                 (dictGet dirMap basename))))
 
     (defNew
@@ -616,17 +617,66 @@
 // TODO themedRollCredits
 (hollywooMethod rollCredits true [:String creditsTSV :Continuation cc]
     (director.rollCredits
-        // TODO insert loadedCredits
-        (for line (.split .content (Stream.fromString creditsTSV) "\n")
-            (case (line.split "\t")
-                ((unless line [_])
-                    Break)
-                ([col1]
-                    (OneColumn col1))
-                ([col1 col2]
-                    (TwoColumn col1 col2))
-                ([col1 col2 col3]
-                    (ThreeColumn col1 col2 col3))
-                (otherwise
-                    (throw "unsupported credits line $line"))))
+        (let [creditsData
+                    (for line (.split .content (Stream.fromString creditsTSV) "\n") (line.split "\t"))
+                headings
+                    []    
+                headingIndices
+                    (new Map<String,Int>)
+                headingData
+                    (new Map<String,Array<Array<String>>>)]
+            // Find headings
+            (doFor [idx data] (enumerate creditsData)
+                (case data
+                    ((or [heading] [heading ""])
+                        (headings.push heading)
+                        (dictSet headingIndices heading idx)
+                        (dictSet headingData heading []))
+                    ((when (StringTools.endsWith heading ":") ["" heading])
+                        (headings.push (substr heading 0 -1))
+                        (dictSet headingIndices (substr heading 0 -1) idx)
+                        (dictSet headingData (substr heading 0 -1) []))
+                    (otherwise)))
+            
+            // Sort loadedCredits by headings and check for missing headings
+            (doFor data loadedCredits
+                (case data
+                    ([heading credit _sourceOrUrl]
+                        (ifLet [idx (dictGet headingIndices heading)]
+                                (let [hd (dictGet headingData heading)
+                                        headingLineData (nth creditsData idx)]
+                                    (case headingLineData
+                                        ([heading ""]
+                                            (setNth headingLineData 1 credit))
+                                        ((or [heading] [heading _])
+                                            (hd.push ["" credit]))
+                                        (["" heading]
+                                            (hd.push ["" "" credit]))
+                                        (never otherwise)))
+                                
+                            (throw "no heading $heading to place credit $data")))
+                    (otherwise
+                        (throw "unsupported credit data $data"))))
+
+            // Insert sorted credits under headings
+            (doFor heading (reverse headings)
+                (let [idx (dictGet headingIndices heading)
+                        hd (dictGet headingData heading)]
+                    (doFor data (reverse hd)
+                        (creditsData.insert (+ idx 1) data))))
+
+            // Return the formatting enum list
+            (for data creditsData
+                (case data
+                    ([]
+                        Break)
+                    ([col1]
+                        (OneColumn col1))
+                    ([col1 col2]
+                        (TwoColumn col1 col2))
+                    ([col1 col2 col3]
+                        (ThreeColumn col1 col2 col3))
+                    (otherwise
+                        (throw "unsupported credits line $data")))))
+        
         cc))

@@ -245,8 +245,8 @@
                     noExt (Path.withoutExtension basename)
                     tsv "${noExt}.tsv"]
                 (if (dirMap.existsExactly tsv)
-                        (let [tsvContent (sys.io.File.getContent ~(dictGet dirMap tsv))]
-                            (loadedCredits.push ~(tsvContent.split "\t")))
+                        (let [tsvContent (sys.io.File.getContent (dictGet dirMap tsv))]
+                            (loadedCredits.push (tsvContent.split "\t")))
                     (print "Warning: no credit tsv file for ${directory}/${filename}"))
                 (dictGet dirMap basename))))
 
@@ -648,10 +648,10 @@
                                     (case headingLineData
                                         ([heading ""]
                                             (setNth headingLineData 1 credit))
+                                        (["" heading]
+                                            (hd.push ["" "  ${credit}"]))
                                         ((or [heading] [heading _])
                                             (hd.push ["" credit]))
-                                        (["" heading]
-                                            (hd.push ["" "" credit]))
                                         (never otherwise)))
                                 
                             (throw "no heading $heading to place credit $data")))

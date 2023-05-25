@@ -28,8 +28,8 @@
     // Mutable representation of frames in time:
     (prop :FuzzyMap<Scene<Set,Actor,Prop,Camera>> scenes (new FuzzyMap<Scene<Set,Actor,Prop,Camera>>))
 
-    (prop :FuzzyMap<Bool> shownScenes (new FuzzyMap<Bool>))
-    (prop :FuzzyMap<Bool> shownCharacters (new FuzzyMap<Bool>))
+    (prop :Map<String,Bool> shownScenes (new Map))
+    (prop :Map<String,Bool> shownCharacters (new Map))
 
     // This is set and unset by doPreload defined in HollywooDSL.kiss
     (prop &mut isLoading false)
@@ -433,14 +433,15 @@
 (hollywooMethod setScene false [name :Continuation cc]
     (_hideCurrentScene
         (makeCC
-            (set sceneKey name)
-            (unless (positionsInScene.exists sceneKey)
-                (dictSet positionsInScene sceneKey []))
-            (_showScene
-                (dictGet scenes name)
-                (appearanceFlag shownScenes name)
-                .camera (dictGet scenes name)
-                cc))))
+            (let [name (FuzzyMapTools.bestMatch scenes name)]
+                (set sceneKey name)
+                (unless (positionsInScene.exists sceneKey)
+                    (dictSet positionsInScene sceneKey []))
+                (_showScene
+                    (dictGet scenes name)
+                    (appearanceFlag shownScenes name)
+                    .camera (dictGet scenes name)
+                    cc)))))
     
 
 (hollywooMethod newSound true [name :Sound s]
@@ -495,7 +496,8 @@
         (cc)))
 
 (hollywooMethod addCharacter false [actorName :Dynamic position :StageFacing facing :Continuation cc]
-    (let [position (resolvePosition position)
+    (let [actorName (FuzzyMapTools.bestMatch actors actorName)
+            position (resolvePosition position)
             character (object stagePosition position stageFacing facing actor (dictGet actors actorName))]
         (autoZProcess position
             (makeCC

@@ -29,6 +29,7 @@
     (prop :FuzzyMap<Scene<Set,Actor,Prop,Camera>> scenes (new FuzzyMap<Scene<Set,Actor,Prop,Camera>>))
 
     (prop :Map<String,Bool> shownScenes (new Map))
+    (prop :Map<String,Bool> shownProps (new Map))
     (prop :Map<String,Bool> shownCharacters (new Map))
 
     // This is set and unset by doPreload defined in HollywooDSL.kiss
@@ -170,7 +171,7 @@
                         (_ccForEach
                             scene.props
                             ->[:StageProp<Prop> p :Continuation cc]
-                                (director.showProp p.prop p.position cc)
+                                (director.showProp p.prop p.position ReAppearance cc)
                             cc))))))
 
     (prop &mut :Bool paused false)
@@ -545,10 +546,11 @@
     (dictSet props name prop))
 
 (hollywooMethod addProp false [name :Dynamic position :Continuation cc]
-    (let [prop (dictGet props name)
+    (let [name (FuzzyMapTools.bestMatch props name)
+            prop (dictGet props name)
             position (resolvePosition position)]
         (dictSet .props (_currentScene) name (objectWith position prop))
-        (director.showProp prop position cc)))
+        (director.showProp prop position (appearanceFlag shownProps name) cc)))
 
 (hollywooMethod removeProp false [name :Continuation cc]
     (.remove .props (_currentScene) name)

@@ -621,6 +621,8 @@
                     (for line (.split .content (Stream.fromString creditsTSV) "\n") (line.split "\t"))
                 headings
                     []    
+                edgeCaseCredits
+                    (new Map<String,String>)
                 headingIndices
                     (new Map<String,Int>)
                 headingData
@@ -643,15 +645,26 @@
                 (case data
                     ([heading credit _sourceOrUrl]
                         (ifLet [idx (dictGet headingIndices heading)]
-                                (let [hd (dictGet headingData heading)
+                                (let [edgeCaseCredit (dictGet edgeCaseCredits heading)
+                                        hd (dictGet headingData heading)
+                                        // Push unless given a duplicate:
+                                        hdPush ->:Void data
+                                                    (let [dataStr (data.toString)]
+                                                        (when (= credit edgeCaseCredit)
+                                                            (return))
+                                                        (doFor d hd
+                                                            (when (= (d.toString) dataStr)
+                                                                (return)))
+                                                        (hd.push data))
                                         headingLineData (nth creditsData idx)]
                                     (case headingLineData
                                         ([heading ""]
+                                            (dictSet edgeCaseCredits heading credit)
                                             (setNth headingLineData 1 credit))
                                         (["" heading]
-                                            (hd.push ["" "  ${credit}"]))
+                                            (hdPush ["" "   ${credit}"]))
                                         ((or [heading] [heading _])
-                                            (hd.push ["" credit]))
+                                            (hdPush ["" credit]))
                                         (never otherwise)))
                                 
                             (throw "no heading $heading to place credit $data")))

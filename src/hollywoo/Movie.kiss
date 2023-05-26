@@ -554,7 +554,6 @@
 
 (hollywooMethod removeProp false [name :Continuation cc]
     (.remove .props (_currentScene) name)
-    // TODO (propsOnStage.remove name)
     (director.hideProp (dictGet props name) cc))
 
 // Dialogue:

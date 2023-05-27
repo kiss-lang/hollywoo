@@ -302,10 +302,12 @@
                         (director.chooseString "Which position?" (dictGet positionsInScene sceneKey)
                             ->positionKey
                                 (director.defineStagePosition
+                                    .camera (_currentScene)
                                     ->[:StagePosition position] {
                                         (stagePositions.put positionKey position)
                                         (cc)
-                                    })))
+                                    }
+                                    (stagePositions.get positionKey))))
                 (shortcutHandler.registerItem "[d]efine [l]ight source"
                     ->cc
                         (director.defineLightSource

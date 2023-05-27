@@ -79,8 +79,8 @@ interface Director<Set:Cloneable<Set>, Actor, Sound, Song, Prop, VoiceTrack, Cam
     function showBlackScreen():Void;
     function hideBlackScreen():Void;
 
-    function showProp(prop:Prop, position:StagePosition, appearance:Appearance, cc:Continuation):Void;
-    function hideProp(prop:Prop, cc:Continuation):Void;
+    function showProp(prop:Prop, position:StagePosition, appearance:Appearance, camera:Camera, cc:Continuation):Void;
+    function hideProp(prop:Prop, camera:Camera, cc:Continuation):Void;
 
     function rollCredits(credits:Array<CreditsLine>, cc:Continuation):Void;
 

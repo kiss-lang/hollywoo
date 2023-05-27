@@ -152,7 +152,7 @@
                                     (_ccForEach
                                         currentScene.props
                                         ->[:StageProp<Prop> p :Continuation cc]
-                                            (director.hideProp p.prop cc)
+                                            (director.hideProp p.prop currentScene.camera cc)
                                         cc))))))
             (cc)))
     
@@ -171,7 +171,7 @@
                         (_ccForEach
                             scene.props
                             ->[:StageProp<Prop> p :Continuation cc]
-                                (director.showProp p.prop p.position ReAppearance cc)
+                                (director.showProp p.prop p.position ReAppearance .camera (_currentScene) cc)
                             cc))))))
 
     (prop &mut :Bool paused false)
@@ -550,11 +550,11 @@
             prop (dictGet props name)
             position (resolvePosition position)]
         (dictSet .props (_currentScene) name (objectWith position prop))
-        (director.showProp prop position (appearanceFlag shownProps name) cc)))
+        (director.showProp prop position (appearanceFlag shownProps name) .camera (_currentScene) cc)))
 
 (hollywooMethod removeProp false [name :Continuation cc]
     (.remove .props (_currentScene) name)
-    (director.hideProp (dictGet props name) cc))
+    (director.hideProp (dictGet props name) .camera (_currentScene) cc))
 
 // Dialogue:
 

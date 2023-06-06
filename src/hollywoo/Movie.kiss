@@ -383,7 +383,7 @@
     (let [sec (typeCase [length]
                     ([:Float sec] sec)
                     ([:String key]
-                        (let [lengthFloat .length (delayLengths.get key)]
+                        (let [lengthFloat .value (delayLengths.get key)]
                             (set lastDelay key)
                             (set lastDelayLength lengthFloat)
                             lengthFloat))

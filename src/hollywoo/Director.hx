@@ -59,7 +59,11 @@ interface Director<Set:Cloneable<Set>, Actor, Sound, Song, Prop, VoiceTrack, Cam
     function hideCharacter(character:Character<Actor>, camera:Camera, cc:Continuation):Void;
 
     function playSound(sound:Sound, volumeMod:Float, waitForEnd:Bool, cc:Continuation):Void;
+    function getSoundLength(sound:Sound):Float;
     function stopSound(sound:Sound):Void;
+
+    function showCaption(description:String, id:Int):Void;
+    function hideCaption(id:Int):Void;
 
     function playSong(song:Song, volumeMod:Float, loop:Bool, waitForEnd:Bool, cc:Continuation):Void;
     function stopSong():Void;

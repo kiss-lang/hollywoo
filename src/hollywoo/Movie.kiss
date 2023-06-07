@@ -6,16 +6,22 @@
 
 // This file is designed to be loaded again by subclasses, with macroVar "subclass" set
 (#unless subclass
+    // Settings
+    (savedVar :Bool showCaptions false)
+    (var MAX_CAPTION_DURATION 3)
+    (prop &mut :Int captionId 0)
 
     // Mostly immutable, reusable resources:
     (prop :FuzzyMap<Set> sets (new FuzzyMap<Set>))
     (prop :FuzzyMap<Actor> actors (new FuzzyMap<Actor>))
     (prop :FuzzyMap<Sound> sounds (new FuzzyMap<Sound>))
+    (prop :FuzzyMap<String> soundDescriptions (new FuzzyMap<String>))
     (prop :FuzzyMap<Song> songs (new FuzzyMap<Song>))
     (prop :FuzzyMap<Prop> props (new FuzzyMap<Prop>))
     (prop :Map<String,VoiceTrack> voiceTracks (new Map))
     (prop :Map<String,CustomDialogTypeHandler<Actor>> customDialogTypeHandlers (new Map))
     (prop :FuzzyMap<FuzzyMap<VoiceLine>> voiceLines (new FuzzyMap<FuzzyMap<VoiceLine>>))
+    
     // Used to give unique, persistent IDs to voice tracks
     (prop :Map<String,Int> voiceTracksPerActor (new Map))
 
@@ -447,14 +453,25 @@
                     cc)))))
     
 
-(hollywooMethod newSound true [name :Sound s]
+(hollywooMethod newSound true [name :Sound s :String description]
     (assert isLoading)
-    (dictSet sounds name s))
+    (dictSet sounds name s)
+    (dictSet soundDescriptions name description))
 
 (hollywooMethod playSound true [name :Continuation cc &opt :Float volumeMod :Bool waitForEnd]
     (set volumeMod (or volumeMod 1))
     (assert (<= 0 volumeMod 1))
-    (director.playSound (dictGet sounds name) volumeMod ?waitForEnd cc))
+    (localVar &mut :Null<Int> id null)
+    (when showCaptions
+        (whenLet [desc (dictGet soundDescriptions name)]
+            (set id captionId++)
+            (director.showCaption desc id)))
+    (let [sound (dictGet sounds name)]
+        (when (and showCaptions id)
+            (delay (min MAX_CAPTION_DURATION (director.getSoundLength sound))
+                (makeCC
+                    (director.hideCaption id))))
+        (director.playSound sound volumeMod ?waitForEnd cc)))
 
 (hollywooMethod awaitPlaySound true [name :Continuation cc &opt :Float volumeMod]
     (playSound name cc volumeMod true))

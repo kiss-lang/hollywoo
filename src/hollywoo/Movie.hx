@@ -37,6 +37,14 @@ typedef VoiceLine = {
     ?alts:Array<VoiceLine>
 };
 
+enum HistoryElement<Actor> {
+    Sound(caption:String);
+    Dialog(speakerName:String, type:SpeechType<Actor>, wryly:String, text:String);
+    Super(text:String);
+    // Scene change? To provide a horizontal divider or something? But what constitutes a scene change? Intercut would add too many.
+    // I don't want to manually define scene changes though.
+}
+
 // (speakerName, character, wryly, args, text, cc) -> cleanup function
 typedef CustomDialogTypeHandler<Actor> = (String, Character<Actor>, String, Array<Dynamic>, String, Continuation) -> (Void->Void);
 

@@ -42,6 +42,7 @@ interface Director<Set:Cloneable<Set>, Actor, Sound, Song, Prop, VoiceTrack, Cam
     function resume():Void;
 
     function showPauseMenu(resume:Continuation):Void;
+    function showDialogHistory(history:Array<HistoryElement<Actor>>, resume:Continuation):Void;
 
     function chooseString(prompt:String, choices:Array<String>, submit:String->Void):Void;
     function enterString(prompt:String, submit:String->Void):Void;

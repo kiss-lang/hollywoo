@@ -610,7 +610,7 @@
     // Skip voice track handling:
     (director.showDialog "" Super "" text cc))
 
-(hollywooMethod timedSuperText true [text :Float sec :Continuation cc]
+(hollywooMethod timedSuperText true [text :Dynamic sec :Continuation cc]
     (let [cc ->:Void {(director.hideDialog) (cc)}]
         (superText text cc)
         (delay sec cc)))

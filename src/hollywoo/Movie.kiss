@@ -644,9 +644,17 @@
         (makeCC
             (showDialog actorName (Custom type (dictGet .characters (_currentScene) actorName) args) wryly text cc))))
 
-(hollywooMethod cutToBlack true [seconds :Continuation cc]
+(hollywooMethod timedCutToBlack true [seconds :Continuation cc]
     (director.showBlackScreen)
     (delay seconds ->:Void {(director.hideBlackScreen)(cc)}))
+
+(hollywooMethod cutToBlack true [:Continuation cc]
+    (director.showBlackScreen)
+    (cc))
+
+(hollywooMethod endCutToBlack true [:Continuation cc]
+    (director.hideBlackScreen)
+    (cc))
 
 // TODO themedRollCredits
 (hollywooMethod rollCredits true [:String creditsTSV :Continuation cc]

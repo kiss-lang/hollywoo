@@ -183,6 +183,10 @@
                                 (director.showProp p.prop p.position ReAppearance .camera (_currentScene) cc)
                             cc))))))
 
+    (#when debug
+        (prop &mut :String projectObsFolder null)
+        (prop &mut :Bool obsIsRecording false))
+
     (prop &mut :Bool paused false)
     (prop &mut :Continuation onComplete null)
 

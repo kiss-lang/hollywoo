@@ -1,3 +1,10 @@
+(importWithDefAlias)
+(import hollywoo.StagePosition)
+(import hollywoo.HFloat)
+(import hollywoo.Director.Appearance)
+(import hollywoo.Director.StageFacing)
+(import hollywoo.Director.Continuation)
+
 (defMacro withProp [propKey name &body body]
     `(let [,name (dictGet props ,propKey)]
         ,@body

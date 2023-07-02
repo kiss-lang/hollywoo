@@ -334,6 +334,19 @@
                                     (director.showLighting .time (_currentScene) arr.elements .camera (_currentScene))
                                     (cc))
                             }))
+                (shortcutHandler.registerItem "[r]emove [l]ight source"
+                    ->cc
+                        (let [arr (lightSources.get sceneKey)
+                                stringArr (for ls arr (ls.stringify))
+                                stringMap (for [key ls] (zipThrow stringArr arr) =>key ls)]
+                            (director.chooseString "Remove which light source?" stringArr
+                                ->choice
+                                    (let [ls (dictGet stringMap choice)]
+                                        (arr.elements.remove ls)
+                                        (lightSources.put sceneKey arr)
+                                        (director.hideLighting)
+                                        (director.showLighting .time (_currentScene) arr.elements .camera (_currentScene))
+                                        (cc)))))
 
                 (shortcutHandler.registerItem "[n]ext label"
                     ->cc

@@ -97,6 +97,7 @@
                                         "Scene"
                                         "--startrecording"
                                         "--minimize-to-tray"
+                                        "--multi"
                                     ])
                             (print "OBS profile and scene collection not found for ${os} in ${projectObsFolder}. Will not be recording"))))))
         (end)))

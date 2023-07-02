@@ -669,8 +669,7 @@
     (director.hideBlackScreen)
     (cc))
 
-// TODO themedRollCredits
-(hollywooMethod rollCredits true [:String creditsTSV :Continuation cc]
+(hollywooMethod rollCredits true [:String creditsTSV :Continuation cc &opt :Float timeLimit]
     (director.rollCredits
         (let [creditsData
                     (for line (.split .content (Stream.fromString creditsTSV) "\n") (line.split "\t"))
@@ -747,4 +746,13 @@
                     (otherwise
                         (throw "unsupported credits line $data")))))
         
-        cc))
+        cc
+        timeLimit))
+
+(hollywooMethod themedRollCredits true [:String creditsTSV :String songKey :Continuation cc &opt :Float volumeMod]
+    (playSong songKey (makeCC null) volumeMod)
+    (rollCredits
+        creditsTSV
+        (makeCC
+            (stopSong cc))
+        (director.getSongLength (dictGet songs songKey))))

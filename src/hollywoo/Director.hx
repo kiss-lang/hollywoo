@@ -67,6 +67,7 @@ interface Director<Set:Cloneable<Set>, Actor, Sound, Song, Prop, VoiceTrack, Cam
     function hideCaption(id:Int):Void;
 
     function playSong(song:Song, volumeMod:Float, loop:Bool, waitForEnd:Bool, cc:Continuation):Void;
+    function getSongLength(song:Song):Float;
     function stopSong():Void;
 
     function playVoiceTrack(track:VoiceTrack, volumeMod:Float, start:Float, end:Float, cc:Continuation):Void;
@@ -87,7 +88,7 @@ interface Director<Set:Cloneable<Set>, Actor, Sound, Song, Prop, VoiceTrack, Cam
     function showProp(prop:Prop, position:StagePosition, appearance:Appearance, camera:Camera, cc:Continuation):Void;
     function hideProp(prop:Prop, camera:Camera, cc:Continuation):Void;
 
-    function rollCredits(credits:Array<CreditsLine>, cc:Continuation):Void;
+    function rollCredits(credits:Array<CreditsLine>, cc:Continuation, ?timeLimit:Float):Void;
 
     function doLoading(_load:Array<Void->Void>, cc:Continuation):Void;
     function cleanup():Void;

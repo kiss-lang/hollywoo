@@ -63,13 +63,7 @@
                 (set lastInstructionPointer -2)
                 (collectedBlocks cleanup))
             (doCleanup)
-            (#when debug
-                (when obsIsRecording
-                    // kill the obs process
-                    (case (Sys.systemName)
-                        ("Linux"
-                            (assertProcess "kill" [(assertProcess "pgrep" ["obs"])]))
-                        (otherwise (throw "OBS executable not defined for $(Sys.systemName)")))))
+            
             (when onComplete
                 (onComplete))
         }))
@@ -85,20 +79,23 @@
                             profileDir "${projectObsFolder}/${os}_Profile"
                             sceneCollectionFile "${projectObsFolder}/${os}_SceneCollection.json"]
                         (if (and (sys.FileSystem.exists profileDir) (sys.FileSystem.exists sceneCollectionFile))
-                                (new sys.io.Process
-                                    (case os
-                                        ("Linux" "obs")
-                                        (otherwise (throw "OBS executable not defined for ${os}")))
-                                    [
-                                        "--profile"
-                                        profileDir
-                                        "--collection"
-                                        sceneCollectionFile
-                                        "--scene"
-                                        "Scene"
-                                        "--startrecording"
-                                        "--minimize-to-tray"
-                                        "--multi"
-                                    ])
+                                {
+                                    (new sys.io.Process
+                                        (case os
+                                            ("Linux" "obs")
+                                            (otherwise (throw "OBS executable not defined for ${os}")))
+                                        [
+                                            "--profile"
+                                            profileDir
+                                            "--collection"
+                                            sceneCollectionFile
+                                            "--scene"
+                                            "Scene"
+                                            "--startrecording"
+                                            "--minimize-to-tray"
+                                            "--multi"
+                                        ])
+                                    (set obsIsRecording true)
+                                }
                             (print "OBS profile and scene collection not found for ${os} in ${projectObsFolder}. Will not be recording"))))))
         (end)))

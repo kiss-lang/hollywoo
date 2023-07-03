@@ -566,6 +566,12 @@
         (.remove .characters (_currentScene) actorName)
         (director.hideCharacter c .camera (_currentScene) cc)))
 
+(hollywooMethod clearCharacters false [:Continuation cc]
+    (doFor =>name c .characters (_currentScene)
+        (director.hideCharacter c .camera (_currentScene) (makeCC null))
+        (.remove .characters (_currentScene) name))
+    (cc))
+
 // INSTANTLY move a character:
 (hollywooMethod moveCharacter false [actorName :Dynamic newPosition :StageFacing newFacing :Continuation cc]
     (removeCharacter actorName

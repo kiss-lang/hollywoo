@@ -193,7 +193,7 @@
                 // kill the obs process
                 (case (Sys.systemName)
                     ("Linux"
-                        (doFor id (.split (assertProcess "pgrep" ["obs"]) "\n")
+                        (doFor id (reverse (.split (assertProcess "pgrep" ["obs"]) "\n"))
                             (assertProcess "kill" [id])))
                     (otherwise (throw "OBS executable not defined for $(Sys.systemName)"))))))
 

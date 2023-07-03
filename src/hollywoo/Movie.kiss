@@ -299,7 +299,8 @@
                 })
             (set shortcutHandler.onBadKey
                 ->[_ _]
-                    (shortcutHandler.start))
+                    (when shortcutHandler.currentMap
+                        (shortcutHandler.start)))
             (shortcutHandler.registerItem "{escape} Pause the movie"
                 ->cc (director.showPauseMenu cc))
             (shortcutHandler.registerItem "{tab} show dialog history"
@@ -361,9 +362,7 @@
                                 ->label {
                                             (resume)
                                             ((dictGet runners label))
-                                        }))))
-
-            (shortcutHandler.start))
+                                        })))))
 
         (super)))
 

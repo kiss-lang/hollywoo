@@ -55,6 +55,7 @@
                         (director.doLoading ,preloadFuncs
                             (makeCC
                                 (set isLoading false)
+                                (.start (director.shortcutHandler))
                                 (director.hideTitleCard)
                                 (cc))))))
             (method doCleanup []

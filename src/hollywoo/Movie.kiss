@@ -233,6 +233,7 @@
                                         "$ext"
                                         "png" // It's common to edit a jpg into a png
                                         "wav" // or an ogg into a wav
+                                        "ogg" // or an mp3 into an ogg
                                     ]
                                     overridePath file]
                                 {

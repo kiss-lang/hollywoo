@@ -74,6 +74,7 @@
         (processIntercut actorName
             (makeCC
                 (let [cc ->:Void {(director.hideDialog) (cc)}
+                        &mut customCC cc
                         &mut skipCC cc]
                     // When an actorName is given, check for a voiced line to play.
                     // Otherwise, assume it is un-voiced super text
@@ -94,15 +95,18 @@
                                     (case (dictGet altIdx "$actorName $text")
                                         (null
                                             (dictSet altIdx "$actorName $text" 0)
+                                            (set customCC ->:Void {})
                                             (director.playVoiceTrack (dictGet voiceTracks trackKey) 1 start end cc))
                                         ((when (>= idx alts.length) idx)
                                             (dictSet altIdx "$actorName $text" 0)
+                                            (set customCC ->:Void {})
                                             (director.playVoiceTrack (dictGet voiceTracks trackKey) 1 start end cc))
                                         (idx
                                             (let [alt (nth alts idx)
                                                     start alt.start
                                                     end alt.end]
                                                 (+= (dictGet altIdx "$actorName $text") 1)
+                                                (set customCC ->:Void {})
                                                 (director.playVoiceTrack (dictGet voiceTracks trackKey) 1 start end cc))))
                                     
                                     (set skipCC ->:Void {(director.stopVoiceTrack (dictGet voiceTracks trackKey)) (cc)}))
@@ -113,7 +117,7 @@
                     (case dialogType
                         ((Custom type character args)
                             (ifLet [handler (dictGet customDialogTypeHandlers type)]
-                                    (let [cleanupFunc (handler actorName character wryly args text skipCC)]
+                                    (let [cleanupFunc (handler actorName character wryly args text skipCC customCC)]
                                         (set _hideCustomDialog cleanupFunc))
                                 (throw "No handler for custom dialog type $type")))
                         (otherwise (director.showDialog actorName dialogType wryly text skipCC)))))))

@@ -45,8 +45,8 @@ enum HistoryElement<Actor> {
     // I don't want to manually define scene changes though.
 }
 
-// (speakerName, character, wryly, args, text, cc) -> cleanup function
-typedef CustomDialogTypeHandler<Actor> = (String, Character<Actor>, String, Array<Dynamic>, String, Continuation) -> (Void->Void);
+// (speakerName, character, wryly, args, text, skipCC, cc) -> cleanup function
+typedef CustomDialogTypeHandler<Actor> = (String, Character<Actor>, String, Array<Dynamic>, String, Continuation, Continuation) -> (Void->Void);
 
 enum CreditsLine {
     OneColumn(s:String);

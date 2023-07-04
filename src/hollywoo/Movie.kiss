@@ -21,7 +21,7 @@
     (prop :FuzzyMap<Song> songs (new FuzzyMap<Song>))
     (prop :FuzzyMap<Prop> props (new FuzzyMap<Prop>))
     (prop :Map<String,VoiceTrack> voiceTracks (new Map))
-    (prop :Map<String,CustomDialogTypeHandler<Actor>> customDialogTypeHandlers (new Map))
+    (prop :Map<String,CustomDialogTypeHandler<Actor>> _customDialogTypeHandlers (new Map))
     (prop :FuzzyMap<FuzzyMap<VoiceLine>> voiceLines (new FuzzyMap<FuzzyMap<VoiceLine>>))
     
     // Used to give unique, persistent IDs to voice tracks
@@ -64,6 +64,12 @@
                     (return))))
         (cc))
     
+    (prop :Map<String,Bool> _silentCustomDialogTypes (new Map))
+    (savedVar :Bool playVoiceTracksForSilentDialog false)
+    (method registerCustomDialogTypeHandler [:String key :CustomDialogTypeHandler<Actor> handler &opt :Bool isSilent]
+        (_customDialogTypeHandlers.set key handler)
+        (when ?isSilent (dictSet _silentCustomDialogTypes key true)))
+    
     (prop &mut :Void->Void _hideCustomDialog null)
     (method :Void showDialog [actorName dialogType wryly text cc]
         // Hide custom dialog when the next dialog appears unless HIDECUSTOMDIALOG is called manually:
@@ -73,12 +79,15 @@
         (dialogHistory.push (Dialog actorName dialogType wryly text))
         (processIntercut actorName
             (makeCC
-                (let [cc ->:Void {(director.hideDialog) (cc)}
+                (let [isSilentType
+                            ?(whenLet [(Custom type _ _) dialogType]
+                                (_silentCustomDialogTypes.exists type))
+                        cc ->:Void {(director.hideDialog) (cc)}
                         &mut customCC cc
                         &mut skipCC cc]
                     // When an actorName is given, check for a voiced line to play.
                     // Otherwise, assume it is un-voiced super text
-                    (when (and actorName (< 0 (count voiceTracks)))
+                    (when (and (or !isSilentType playVoiceTracksForSilentDialog) actorName (< 0 (count voiceTracks)))
                             (case
                                 (let [voiceLineKey
                                             (if (voiceLineMatches.exists text)
@@ -116,7 +125,7 @@
                                 (otherwise)))
                     (case dialogType
                         ((Custom type character args)
-                            (ifLet [handler (dictGet customDialogTypeHandlers type)]
+                            (ifLet [handler (dictGet _customDialogTypeHandlers type)]
                                     (let [cleanupFunc (handler actorName character wryly args text skipCC customCC)]
                                         (set _hideCustomDialog cleanupFunc))
                                 (throw "No handler for custom dialog type $type")))

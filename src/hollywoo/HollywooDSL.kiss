@@ -51,6 +51,7 @@
                         ,exp
                     })]
         `{
+            @:keep
             (method doPreload [:Void->Void cc]
                 (director.showTitleCard ["LOADING"]
                     (makeCC

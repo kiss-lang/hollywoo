@@ -421,7 +421,7 @@
                                                 (b.callSymbol "catch" [(b.list [(b.symbol "e")]) (b.callSymbol "b.symbol" [(b.str "null")])])
                                             ]))))]
                     (if ,canSkip methodCall (b.callSymbol "noSkip" [methodCall]))))
-            (#unless subclass (method ,nameAndType ,argList ,@body))
+            (#unless subclass @:keep (method ,nameAndType ,argList ,@body))
         }))
 
 (hollywooMethod :Void hideCustomDialog true [:Continuation cc]

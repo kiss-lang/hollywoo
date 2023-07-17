@@ -46,7 +46,10 @@
     (let [collectedPreloads (getCollectedExps "preload")
             preloadFuncs
                 (for exp collectedPreloads
-                    `->:Void {,exp})]
+                    `->:Void {
+                        (Prelude.print ,(Reader.toString exp.def))
+                        ,exp
+                    })]
         `{
             (method doPreload [:Void->Void cc]
                 (director.showTitleCard ["LOADING"]

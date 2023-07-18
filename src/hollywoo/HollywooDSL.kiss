@@ -75,6 +75,15 @@
 (defReaderMacro &bof "" [stream] `(#when (StringTools.contains kissFile className) (doPreload cc)))
 (defReaderMacro &eof "" [stream]
     `(#when (StringTools.contains kissFile className)
+
+        // Prepare the interpreter for this movie's cached instructions
+        (preload
+            (let [v interpVariables]
+                (dictSet v "TowardsCharacter" hollywoo.Director.StageFacing.TowardsCharacter)
+                (dictSet v "AwayFromCharacter" hollywoo.Director.StageFacing.AwayFromCharacter)
+                (dictSet v "TowardsPosition" hollywoo.Director.StageFacing.TowardsPosition)
+                (dictSet v "AwayFromPosition" hollywoo.Director.StageFacing.AwayFromPosition)))
+
         // When all loading is done, start obs recording automatically:
         (#when debug
             (preload

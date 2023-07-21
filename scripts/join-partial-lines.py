@@ -31,16 +31,20 @@ def save():
 
 joining_with_guess = ""
 joining_with = None
+joining_reverse = False
 delay_time = 0.5
 
 def process_chunk(audio_guess, timestamp):
     global joining_with_guess
     global joining_with
+    global joining_reverse
     global delay_time
+    preposition = 'into' if joining_reverse else 'onto'
     if joining_with != None:
-        print(f'Joining onto: \033[92m{joining_with_guess}\033[0m')
+        print(f'Joining {preposition}: \033[92m{joining_with_guess}\033[0m')
     print('\033[31m' + audio_guess + '\033[0m')
-    usage = f'u/d/j/p/t/f/n/q/h' 
+    js = 'j' if joining_with != None else 'j/J'
+    usage = f'u/d/{js}/p/t/f/n/q/h'
     print(usage)
     if 'alts' in timestamp:
         print('join-partial-lines cannot join alts. skipping')
@@ -59,20 +63,34 @@ def process_chunk(audio_guess, timestamp):
             cutter.take_audio(audio_guess, timestamp, timestamp['start'], timestamp['end'])
         elif choice == 'd':
             break
+        elif choice == 'J':
+            if joining_with == None:
+                joining_with_guess = audio_guess
+                joining_with = timestamp
+                joining_reverse = True
+                break
         elif choice == 'j':
             if joining_with == None:
                 joining_with_guess = audio_guess
                 joining_with = timestamp
+                joining_reverse = False
             else:
                 # do the join
-                joined_guess = joining_with_guess + " " + audio_guess
+                first_guess = audio_guess if joining_reverse else joining_with_guess
+                second_guess = joining_with_guess if joining_reverse else audio_guess
+                joined_guess = first_guess + " " + second_guess
+
                 full_timestamp = {
                     'start': cutter.current_sec,
                     'end': cutter.current_sec + (joining_with['end'] - joining_with['start']) + delay_time + (timestamp['end'] - timestamp['start'])
                 }
-                cutter.take_audio(joined_guess, full_timestamp, joining_with['start'], joining_with['end'])
+
+                first_timestamp = timestamp if joining_reverse else joining_with
+                second_timestamp = joining_with if joining_reverse else timestamp
+
+                cutter.take_audio(joined_guess, full_timestamp, first_timestamp['start'], first_timestamp['end'])
                 cutter.add_silence(delay_time)
-                cutter.take_audio(joined_guess, full_timestamp, timestamp['start'], timestamp['end'])
+                cutter.take_audio(joined_guess, full_timestamp, second_timestamp['start'], second_timestamp['end'])
                 # clear the joining part
                 joining_with_guess = ""
                 joining_with = None
@@ -86,10 +104,16 @@ def process_chunk(audio_guess, timestamp):
         elif choice == 'q':
             save()
         elif choice == 'p':
-            cutter.play_audio(joining_with['start'], joining_with['end'])
-            sleep(joining_with['end'] - joining_with['start'])
-            sleep(delay_time)
-            cutter.play_audio(timestamp['start'], timestamp['end'])
+            if joining_with == None:
+                cutter.play_audio(timestamp['start'], timestamp['end'])
+            else:
+                first_timestamp = timestamp if joining_reverse else joining_with
+                second_timestamp = joining_with if joining_reverse else timestamp
+
+                cutter.play_audio(first_timestamp['start'], first_timestamp['end'])
+                sleep(first_timestamp['end'] - first_timestamp['start'])
+                sleep(delay_time)
+                cutter.play_audio(second_timestamp['start'], second_timestamp['end'])
         elif choice == 't':
             delay_time = float(input("seconds to pause between parts? "))
             print(usage)
@@ -97,11 +121,13 @@ def process_chunk(audio_guess, timestamp):
         elif choice == 'h':
             print('u - use this line as-is')
             if joining_with != None:
-                print(f'j - join this line with \033[92m{joining_with_guess}\033[0m')
+                print(f'j - join this line {preposition} \033[92m{joining_with_guess}\033[0m')
             else:
-                print('j - join this line with another line')
+                print('j - join another line onto this line')
+                print('J - join another line this into line')
             print(f't - set the delay time (currently {delay_time}')
-            print('p - play this line as if joined')
+            as_if_joined = ' as if joined' if joining_with != None else ''
+            print(f'p - play this line{as_if_joined}')
             print('f - search ahead for a word or phrase')
             print('n - repeat a search.')
             print('d - discard this line')

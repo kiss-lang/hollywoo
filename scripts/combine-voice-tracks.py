@@ -57,6 +57,9 @@ for json_filename in json_filenames:
     with open(json_filename, 'r') as f:
         timestamps = json.load(f)
 
+    if len(timestamps) == 0:
+        continue
+
     wav_filename = json_filename.replace(".json", ".wav")
     wav = None
     with open(wav_filename, 'rb') as f:
@@ -73,6 +76,7 @@ for json_filename in json_filenames:
         new_data = vstack((new_data, data))
         for key, element in timestamps.items():
             element = offset(element)
+            timestamps[key] = element
             if key in new_json:
                 combined = combine(new_json[key], element)
                 new_json[key] = combined

@@ -25,6 +25,7 @@ typedef AutoZConfig = {
     frontLayer:Int
 };
 
+@:keepSub
 interface Director<Set:Cloneable<Set>, Actor, Sound, Song, Prop, VoiceTrack, Camera, LightSource:Jsonable<LightSource>> {
     var movie(default, default):Movie<Set, Actor, Sound, Song, Prop, VoiceTrack, Camera, LightSource>;
     function autoZConfig():Option<AutoZConfig>;

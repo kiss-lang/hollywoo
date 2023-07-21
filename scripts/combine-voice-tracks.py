@@ -87,7 +87,10 @@ for json_filename in json_filenames:
     for _, element in timestamps.items():
         end = element["end"]
         if "alts" in element:
-            end = element["alts"][-1]["end"]
+            for alt in element["alts"]:
+                alt_end = alt["end"]
+                if alt_end > end:
+                    end = alt_end
         if end > file_start_time:
             file_start_time = end
 

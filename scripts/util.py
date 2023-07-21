@@ -43,9 +43,12 @@ class AudioCutter:
         self.last_search = None
 
     def save_and_quit(self, new_wav_file):
-        wavfile.write(new_wav_file, self.framerate, self.new_data)
-        with open(new_wav_file.replace(".wav", ".json"), 'w') as f:
-            json.dump(self.new_json_info, f)
+        if len(self.new_json_info) == 0:
+            print('not saving -- no audio added.')
+        else:
+            wavfile.write(new_wav_file, self.framerate, self.new_data)
+            with open(new_wav_file.replace(".wav", ".json"), 'w') as f:
+                json.dump(self.new_json_info, f)
         sys.exit(0)
 
     def audio_and_length(self, start, end):

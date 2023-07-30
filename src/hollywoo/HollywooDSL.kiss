@@ -61,7 +61,10 @@
                                 (set isLoading false)
                                 (.start (director.shortcutHandler))
                                 (director.hideTitleCard)
-                                (cc))))))
+                                // When all loading is done, prompt to start obs recording automatically:
+                                (#if debug
+                                        (promptToRecord cc)
+                                    (cc)))))))
             (method doCleanup []
                 (director.cleanup)
                 (set lastInstructionPointer -2)
@@ -72,7 +75,10 @@
                 (onComplete))
         }))
 
-(defReaderMacro &bof "" [stream] `(#when (StringTools.contains kissFile className) (doPreload cc)))
+(defReaderMacro &bof "" [stream]
+    `(#when
+        (StringTools.contains kissFile className)
+        (doPreload cc)))
 (defReaderMacro &eof "" [stream]
     `(#when (StringTools.contains kissFile className)
 
@@ -84,31 +90,8 @@
                 (dictSet v "TowardsPosition" hollywoo.Director.StageFacing.TowardsPosition)
                 (dictSet v "AwayFromPosition" hollywoo.Director.StageFacing.AwayFromPosition)))
 
-        // When all loading is done, start obs recording automatically:
-        (#when debug
-            (preload
-                (when projectObsFolder
-                    (let [os (Sys.systemName)
-                            profileDir "${projectObsFolder}/${os}_Profile"
-                            sceneCollectionFile "${projectObsFolder}/${os}_SceneCollection.json"]
-                        (if (and (sys.FileSystem.exists profileDir) (sys.FileSystem.exists sceneCollectionFile))
-                                {
-                                    (new sys.io.Process
-                                        (case os
-                                            ("Linux" "obs")
-                                            (otherwise (throw "OBS executable not defined for ${os}")))
-                                        [
-                                            "--profile"
-                                            profileDir
-                                            "--collection"
-                                            sceneCollectionFile
-                                            "--scene"
-                                            "Scene"
-                                            "--startrecording"
-                                            "--minimize-to-tray"
-                                            "--multi"
-                                        ])
-                                    (set obsIsRecording true)
-                                }
-                            (print "OBS profile and scene collection not found for ${os} in ${projectObsFolder}. Will not be recording"))))))
+        (cleanup
+            (#when debug
+                (stopPromptedRecording)))
+            
         (end)))

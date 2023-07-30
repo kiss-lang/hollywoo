@@ -196,26 +196,11 @@
                                 (director.showProp p.prop p.position ReAppearance .camera (_currentScene) cc)
                             cc))))))
 
-    (#when debug
-        (prop &mut :String projectObsFolder null)
-        (prop &mut :Bool obsIsRecording false))
-
-    (method stopObs []
-        (#when debug
-            (when obsIsRecording
-                // kill the obs process
-                (case (Sys.systemName)
-                    ("Linux"
-                        (doFor id (reverse (.split (assertProcess "pgrep" ["obs"]) "\n"))
-                            (assertProcess "kill" [id])))
-                    (otherwise (throw "OBS executable not defined for $(Sys.systemName)"))))))
-
     (prop &mut :Bool paused false)
     (prop &mut :Continuation onComplete null)
 
     (method pause []
         (unless paused
-            (stopObs)
             (TimerWithPause.pause)
             (set paused true)
             (director.pause)))
@@ -225,6 +210,27 @@
             (set paused false)
             (director.resume)
             (TimerWithPause.resume)))
+
+    (prop &mut promptedRecording false)
+    (method promptToRecord [:Continuation cc]
+        (unless kiss_tools.OBSTools.obsIsRecording
+            (director.chooseString
+                "Start recording?"
+                ["Yes" "No"]
+                ->:Void choice 
+                    (case choice 
+                        ("Yes"
+                            (set promptedRecording true)
+                            (kiss_tools.OBSTools.startObs)
+                            (cc))
+                        (otherwise (cc))))))
+
+    (method stopPromptedRecording []
+        (set promptedRecording (and promptedRecording kiss_tools.OBSTools.obsIsRecording))
+        (when promptedRecording
+            (kiss_tools.OBSTools.stopObs)
+            (set promptedRecording false)))
+
 
     (prop :Map<String,Array<String>> positionsInScene (new Map))
     (method resolvePosition [:Dynamic position]

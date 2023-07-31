@@ -55,7 +55,7 @@ def process_chunk(audio_guess, possible_sections):
         return start, end
     
     print('\033[31m' + audio_guess + '\033[0m')
-    print(f'{takes}/u({takes}/*)/d/f/n/h/q')
+    print(f'{takes}/u({takes}/*)/d/f/n/r/h/q')
     while True:
         choice = getch()
         if choice == 'h':
@@ -64,6 +64,7 @@ def process_chunk(audio_guess, possible_sections):
             print(f'u + {takes} - use a take.')
             print(f'u + * -  use all takes as alts.')
             print('f - search ahead for a word or phrase')
+            print('r - rewrite the transcription of this snippet for better matching')
             print('n - repeat a search.')
             print('d - discard this snippet.')
             print('q - save and quit')
@@ -74,6 +75,9 @@ def process_chunk(audio_guess, possible_sections):
             cutter.play_audio(start, end)
         elif choice == 'f':
             cutter.search()
+            break
+        elif choice == 'r':
+            cutter.rewrite_transcription(audio_guess, process_chunk)
             break
         elif choice == 'n':
             cutter.repeat_search()

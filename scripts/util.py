@@ -23,6 +23,8 @@ def args(starting_num, usage, default=None):
 
 class AudioCutter:
     def __init__(self, wav_file, json_file):
+        self.json_file = json_file
+
         # Store a wav file's sound data and json data representing tagged chunks of audio in the wav
         with open(json_file, 'r') as f:
             self.json_info = json.load(f)
@@ -79,6 +81,17 @@ class AudioCutter:
     
     def repeat_search(self):
         self.searching_for = self.last_search
+
+    def rewrite_transcription(self, audio_tag, chunk_processor=None):
+        info = self.json_info[audio_tag]
+        new_audio_tag = input("new transcription? ")
+        
+        self.json_info[new_audio_tag] = info
+        self.json_info.pop(audio_tag, None)
+        with open(self.json_file, 'w') as f:
+            json.dump(self.json_info, f)
+        if chunk_processor is not None:
+            chunk_processor(new_audio_tag, info)
 
     def process_audio(self, chunk_processor, new_wav_file):
         for (audio_tag, chunk_info) in self.json_info.items():

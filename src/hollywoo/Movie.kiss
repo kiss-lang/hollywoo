@@ -71,12 +71,15 @@
         (when ?isSilent (dictSet _silentCustomDialogTypes key true)))
     
     (prop &mut :Void->Void _hideCustomDialog null)
-    (method :Void showDialog [actorName dialogType wryly text cc]
+    (method :Void showDialog [:Bool skipping actorName dialogType wryly text cc]
         // Hide custom dialog when the next dialog appears unless HIDECUSTOMDIALOG is called manually:
         (when _hideCustomDialog
             (_hideCustomDialog)
             (set _hideCustomDialog null))
         (dialogHistory.push (Dialog actorName dialogType wryly text))
+        (when skipping
+            (cc)
+            (return))
         (processIntercut actorName
             (makeCC
                 (let [isSilentType
@@ -380,10 +383,13 @@
                                         (director.showLighting .time (_currentScene) arr.elements .camera (_currentScene))
                                         (cc)))))
 
-                (shortcutHandler.registerItem "[n]ext label"
+                // TODO
+                **(shortcutHandler.registerItem "[n]ext label"
                     ->cc
                         (skipToNextLabel))
-                (shortcutHandler.registerItem "skip to [l]abel"
+
+                // TODO
+                **(shortcutHandler.registerItem "skip to [l]abel"
                     ->cc
                         (let [runners (labelRunners)]
                             (director.chooseString
@@ -403,14 +409,14 @@
         (_indexAssetPaths ,dir)))
 
 // Some real magic happens here. This macro defines a method, AND a reader macro
-// for calling it with cc passed automatically if cc is an argument.
+// for calling it with skipping and cc passed automatically if cc is an argument.
 // GOTCHA: DO NOT use (method) directly in this file!!
-(defMacro hollywooMethod [nameAndType canSkip argList &builder b &body body]
+(defMacro hollywooMethod [nameAndType argList &builder b &body body]
     (let [args (expList argList)
             numArgs args.length
             methodName (symbolNameValue nameAndType true)
             &mut readerMacroStart "$(.toUpperCase methodName) "]
-        (when (= 1 numArgs) (set readerMacroStart (StringTools.trim readerMacroStart)))
+        (when (= 2 numArgs) (set readerMacroStart (StringTools.trim readerMacroStart)))
         `{
             (defReaderMacro ,readerMacroStart [stream &builder b]
                 (let [nextLineStream
@@ -419,23 +425,30 @@
                             (b.callSymbol
                                 ,methodName
                                 ,(for arg args
-                                    (if (= "cc" (symbolNameValue arg true true))
-                                            (b.callSymbol "b.symbol" [(b.str "cc")])
-                                        (b.callSymbol "try" [
+                                    (cond
+                                        ((= "cc" (symbolNameValue arg true true))
+                                            (b.callSymbol "b.symbol" [(b.str "cc")]))
+                                        ((= "skipping" (symbolNameValue arg true true))
+                                            (b.callSymbol "b.symbol" [(b.str "skipping")]))
+                                        (true (b.callSymbol "try" [
                                                 (b.callSymbol "read" [(b.symbol "nextLineStream")])
                                                 // optional arguments may not be present:
                                                 (b.callSymbol "catch" [(b.list [(b.symbol "e")]) (b.callSymbol "b.symbol" [(b.str "null")])])
-                                            ]))))]
-                    (if ,canSkip methodCall (b.callSymbol "noSkip" [methodCall]))))
+                                            ])))))]
+                    methodCall))
             (#unless subclass @:keep (method ,nameAndType ,argList ,@body))
         }))
 
-(hollywooMethod :Void hideCustomDialog true [:Continuation cc]
+(hollywooMethod :Void hideCustomDialog [:Continuation cc]
     (when _hideCustomDialog
         (_hideCustomDialog)
-        (set _hideCustomDialog null)))
+        (set _hideCustomDialog null))
+    (cc))
 
-(hollywooMethod :Void delay true [:Dynamic length :Continuation cc]
+(hollywooMethod :Void delay [:Bool skipping :Dynamic length :Continuation cc]
+    (when skipping
+        (cc)
+        (return))
     (let [sec (typeCase [length]
                     ([:Float sec] sec)
                     ([:String key]
@@ -469,11 +482,11 @@
                     }))
             (otherwise (throw "Unsupported delay type $delayHandling")))))
 
-(hollywooMethod newSet true [name :Set set]
+(hollywooMethod newSet [name :Set set]
     (assert isLoading)
     (dictSet sets name set))
 
-(hollywooMethod newSceneFromSet true [name :String setKey :SceneTime time :ScenePerspective perspective :Camera camera]
+(hollywooMethod newSceneFromSet [name :String setKey :SceneTime time :ScenePerspective perspective :Camera camera]
     (assert isLoading)
     (dictSet scenes name (objectWith
                                 [
@@ -489,7 +502,7 @@
                                 time
                                 perspective)))
 
-(hollywooMethod setScene false [name :Continuation cc]
+(hollywooMethod setScene [name :Continuation cc]
     (_hideCurrentScene
         (makeCC
             (let [name (FuzzyMapTools.bestMatch scenes name)]
@@ -503,12 +516,15 @@
                     cc)))))
     
 
-(hollywooMethod newSound true [name :Sound s :String description]
+(hollywooMethod newSound [name :Sound s :String description]
     (assert isLoading)
     (dictSet sounds name s)
     (dictSet soundDescriptions name description))
 
-(hollywooMethod playSound true [name :Continuation cc &opt :Float volumeMod :Bool waitForEnd]
+(hollywooMethod playSound [:Bool skipping name :Continuation cc &opt :Float volumeMod :Bool waitForEnd]
+    (when skipping
+        (cc)
+        (return))
     (set volumeMod (or volumeMod 1))
     (assert (<= 0 volumeMod 1))
     (localVar &mut :Null<Int> id null)
@@ -520,42 +536,47 @@
             (director.showCaption desc id)))
     (let [sound (dictGet sounds name)]
         (when (and showCaptions id)
-            (delay (min MAX_CAPTION_DURATION (director.getSoundLength sound))
+            (delay skipping (min MAX_CAPTION_DURATION (director.getSoundLength sound))
                 (makeCC
                     (director.hideCaption id))))
         (director.playSound sound volumeMod ?waitForEnd cc)))
 
-(hollywooMethod awaitPlaySound true [name :Continuation cc &opt :Float volumeMod]
-    (playSound name cc volumeMod true))
+(hollywooMethod awaitPlaySound [:Bool skipping name :Continuation cc &opt :Float volumeMod]
+    (playSound skipping name cc volumeMod true))
 
-(hollywooMethod stopSound true [name :Continuation cc]
-    (director.stopSound (dictGet sounds name))
+(hollywooMethod stopSound [:Bool skipping name :Continuation cc]
+    (unless skipping
+        (director.stopSound (dictGet sounds name)))
     (cc))
 
-(hollywooMethod newSong true [name :Song song]
+(hollywooMethod newSong [name :Song song]
     (assert isLoading)
     (dictSet songs name song))
 
-(hollywooMethod playSong true [name :Continuation cc &opt :Float volumeMod :Bool loop :Bool waitForEnd]
+(hollywooMethod playSong [:Bool skipping name :Continuation cc &opt :Float volumeMod :Bool loop :Bool waitForEnd]
+    (when skipping
+        (cc)
+        (return))
     (set volumeMod (or volumeMod 1))
     (assert (<= 0 volumeMod 1))
     (director.playSong (dictGet songs name) volumeMod ?loop ?waitForEnd cc))
 
-(hollywooMethod awaitPlaySong true [name :Continuation cc &opt :Float volumeMod]
-    (playSong name cc volumeMod false true))
+(hollywooMethod awaitPlaySong [:Bool skipping name :Continuation cc &opt :Float volumeMod]
+    (playSong skipping name cc volumeMod false true))
     
-(hollywooMethod loopSong true [name :Continuation cc &opt :Float volumeMod]
-    (playSong name cc volumeMod true false))
+(hollywooMethod loopSong [:Bool skipping name :Continuation cc &opt :Float volumeMod]
+    (playSong skipping name cc volumeMod true false))
 
-(hollywooMethod stopSong true [cc]
-    (director.stopSong)
+(hollywooMethod stopSong [:Bool skipping cc]
+    (unless skipping
+        (director.stopSong))
     (cc))
 
-(hollywooMethod newActor true [name :Actor actor]
+(hollywooMethod newActor [name :Actor actor]
     (assert isLoading)
     (dictSet actors name actor))
 
-(hollywooMethod autoZProcess false [:StagePosition position :Continuation cc]
+(hollywooMethod autoZProcess [:StagePosition position :Continuation cc]
     // handle auto z recursively
     (ifLet [(Some (objectWith zPerLayer frontLayer)) (director.autoZConfig)]
             {
@@ -567,7 +588,7 @@
             }
         (cc)))
 
-(hollywooMethod addCharacter false [actorName :Dynamic position :StageFacing facing :Continuation cc]
+(hollywooMethod addCharacter [actorName :Dynamic position :StageFacing facing :Continuation cc]
     (let [actorName (FuzzyMapTools.bestMatch actors actorName)
             position (resolvePosition position)
             character (object stagePosition position stageFacing facing actor (dictGet actors actorName))]
@@ -580,25 +601,25 @@
                     .camera (_currentScene)
                     cc))))) 
 
-(hollywooMethod removeCharacter false [actorName :Continuation cc]
+(hollywooMethod removeCharacter [actorName :Continuation cc]
     (let [c (dictGet .characters (_currentScene) actorName)]
         (.remove .characters (_currentScene) actorName)
         (director.hideCharacter c .camera (_currentScene) cc)))
 
-(hollywooMethod clearCharacters false [:Continuation cc]
+(hollywooMethod clearCharacters [:Continuation cc]
     (doFor =>name c .characters (_currentScene)
         (director.hideCharacter c .camera (_currentScene) (makeCC null))
         (.remove .characters (_currentScene) name))
     (cc))
 
 // INSTANTLY move a character:
-(hollywooMethod moveCharacter false [actorName :Dynamic newPosition :StageFacing newFacing :Continuation cc]
+(hollywooMethod moveCharacter [actorName :Dynamic newPosition :StageFacing newFacing :Continuation cc]
     (removeCharacter actorName
         (makeCC
             (addCharacter actorName newPosition newFacing cc))))
 
 // INSTANTLY swap characters
-(hollywooMethod swapCharacters false [actorNameA actorNameB :Continuation cc]
+(hollywooMethod swapCharacters [actorNameA actorNameB :Continuation cc]
     // remove both, then re-add both, so they don't trigger 
     // cascading auto z adjustments on top of each other:
     (let [a (dictGet .characters (_currentScene) actorNameA)
@@ -618,92 +639,110 @@
 // TODO moveCharacter remove them, add them to another scene
 // TODO moveCharacterAndFollow remove them, add them to another scene, set that the scene
 
-(hollywooMethod newProp true [name :Prop prop]
+(hollywooMethod newProp [name :Prop prop]
     (assert isLoading)
     (dictSet props name prop))
 
-(hollywooMethod addProp false [name :Dynamic position :Continuation cc]
+(hollywooMethod addProp [name :Dynamic position :Continuation cc]
     (let [name (FuzzyMapTools.bestMatch props name)
             prop (dictGet props name)
             position (resolvePosition position)]
         (dictSet .props (_currentScene) name (objectWith position prop))
         (director.showProp prop position (appearanceFlag shownProps name) .camera (_currentScene) cc)))
 
-(hollywooMethod removeProp false [name :Continuation cc]
+(hollywooMethod removeProp [name :Continuation cc]
     (.remove .props (_currentScene) name)
     (director.hideProp (dictGet props name) .camera (_currentScene) cc))
 
 // Dialogue:
 
-(hollywooMethod intercut false [:Map<String,String> actorNamesToSceneNames :Continuation cc]
+(hollywooMethod intercut [:Map<String,String> actorNamesToSceneNames :Continuation cc]
     (set intercutMap (new FuzzyMap<String>))
     (doFor =>actor scene actorNamesToSceneNames
         (dictSet intercutMap actor scene))
     (cc))
 
-(hollywooMethod endIntercut false [:Continuation cc]
+(hollywooMethod endIntercut [:Continuation cc]
     (set intercutMap null)
     (cc))
 
-(hollywooMethod timedTitleCard true [time :Array<String> lines :Continuation cc]
+(hollywooMethod timedTitleCard [:Bool skipping time :Array<String> lines :Continuation cc]
+    (when skipping
+        (cc)
+        (return))
     (let [cc ->{(director.hideTitleCard)(cc)}]
         (director.showTitleCard lines
             (makeCC
                 // Allow skipping
                 (director.startWaitForInput cc)
-                (delay time cc)))))
+                (delay skipping time cc)))))
 
 // TODO themed titleCard (wait for song or sound)
 
 
-(hollywooMethod superText true [text :Continuation cc]
+(hollywooMethod superText [:Bool skipping text :Continuation cc]
     (dialogHistory.push (Super text))
-    // Skip voice track handling:
-    (director.showDialog "" Super "" text cc))
+    (if skipping
+            (cc)
+        // Skip voice track handling:
+        // TODO don't skip it when playing silent dialog
+        (director.showDialog "" Super "" text cc)))
 
-(hollywooMethod timedSuperText true [text :Dynamic sec :Continuation cc]
+(hollywooMethod timedSuperText [:Bool skipping text :Dynamic sec :Continuation cc]
+    (when skipping
+        (dialogHistory.push (Super text))
+        (cc)
+        (return))
     (let [cc ->:Void {(director.hideDialog) (cc)}]
-        (superText text cc)
-        (delay sec cc)))
+        (superText skipping text cc)
+        (delay skipping sec cc)))
 
 // TODO themed superText
 
-(hollywooMethod normalSpeech true [actorName wryly text :Continuation cc]
+(hollywooMethod normalSpeech [:Bool skipping actorName wryly text :Continuation cc]
     (processIntercut actorName
         (makeCC
-            (showDialog actorName (OnScreen (dictGet .characters (_currentScene) actorName)) wryly text cc))))
+            (showDialog skipping actorName (OnScreen (dictGet .characters (_currentScene) actorName)) wryly text cc))))
 
-(hollywooMethod offScreenSpeech true [actorName wryly text :Continuation cc]
-    (showDialog actorName (OffScreen (dictGet actors actorName)) wryly text cc))
+(hollywooMethod offScreenSpeech [:Bool skipping actorName wryly text :Continuation cc]
+    (showDialog skipping actorName (OffScreen (dictGet actors actorName)) wryly text cc))
 
-(hollywooMethod voiceOver true [actorName wryly text :Continuation cc]
-    (showDialog actorName (VoiceOver (dictGet actors actorName)) wryly text cc))
+(hollywooMethod voiceOver [:Bool skipping actorName wryly text :Continuation cc]
+    (showDialog skipping actorName (VoiceOver (dictGet actors actorName)) wryly text cc))
 
-(hollywooMethod onPhoneSpeech true [actorName wryly text :Continuation cc]
+(hollywooMethod onPhoneSpeech [:Bool skipping actorName wryly text :Continuation cc]
     (processIntercut actorName
         (makeCC
-            (showDialog actorName (ifLet [charOnScreen (try (dictGet .characters (_currentScene) actorName) (catch [e] null))]
+            (showDialog skipping actorName (ifLet [charOnScreen (try (dictGet .characters (_currentScene) actorName) (catch [e] null))]
                                             (OnScreen charOnScreen)
                                         (FromPhone (dictGet actors actorName))) wryly text cc))))
 
-(hollywooMethod customSpeech true [type actorName wryly args text :Continuation cc]
+(hollywooMethod customSpeech [:Bool skipping type actorName wryly args text :Continuation cc]
     (processIntercut actorName
         (makeCC
-            (showDialog actorName (Custom type (dictGet .characters (_currentScene) actorName) args) wryly text cc))))
+            (showDialog skipping actorName (Custom type (dictGet .characters (_currentScene) actorName) args) wryly text cc))))
 
-(hollywooMethod timedCutToBlack true [seconds :Continuation cc]
+(hollywooMethod timedCutToBlack [:Bool skipping seconds :Continuation cc]
+    (when skipping
+        (cc)
+        (return))
     (director.showBlackScreen)
-    (delay seconds ->:Void {(director.hideBlackScreen)(cc)}))
+    (delay skipping seconds ->:Void {(director.hideBlackScreen)(cc)}))
 
-(hollywooMethod cutToBlack true [:Continuation cc]
-    (director.showBlackScreen)
+(hollywooMethod cutToBlack [:Bool skipping :Continuation cc]
+    (unless skipping
+        (director.showBlackScreen))
     (cc))
 
-(hollywooMethod endCutToBlack true [:Continuation cc]
-    (director.hideBlackScreen)
+(hollywooMethod endCutToBlack [:Bool skipping :Continuation cc]
+    (unless skipping
+        (director.hideBlackScreen))
     (cc))
 
-(hollywooMethod rollCredits true [:String creditsTSV :Continuation cc &opt :Float timeLimit]
+(hollywooMethod rollCredits [:Bool skipping :String creditsTSV :Continuation cc &opt :Float timeLimit]
+    (when skipping
+        (cc)
+        (return))
     (director.rollCredits
         (let [creditsData
                     (for line (.split .content (Stream.fromString creditsTSV) "\n") (line.split "\t"))
@@ -783,10 +822,14 @@
         cc
         timeLimit))
 
-(hollywooMethod themedRollCredits true [:String creditsTSV :String songKey :Continuation cc &opt :Float volumeMod]
-    (playSong songKey (makeCC null) volumeMod)
+(hollywooMethod themedRollCredits [:Bool skipping :String creditsTSV :String songKey :Continuation cc &opt :Float volumeMod]
+    (when skipping
+        (cc)
+        (return))
+    (playSong skipping songKey (makeCC null) volumeMod)
     (rollCredits
+        skipping 
         creditsTSV
         (makeCC
-            (stopSong cc))
+            (stopSong skipping cc))
         (director.getSongLength (dictGet songs songKey))))

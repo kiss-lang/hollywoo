@@ -2,7 +2,7 @@ package hollywoo;
 
 import haxe.Constraints.Function;
 import haxe.Timer;
-import kiss.AsyncEmbeddedScript;
+import kiss.AsyncEmbeddedScript2;
 import kiss.Prelude;
 import kiss.Stream;
 import kiss.FuzzyMap;
@@ -59,4 +59,4 @@ enum CreditsLine {
  * Model/controller of a Hollywoo film, and main execution script
  */
 @:build(kiss.Kiss.build())
-class Movie<Set:Cloneable<Set>, Actor, Sound, Song, Prop, VoiceTrack, Camera, LightSource:Jsonable<LightSource>> extends AsyncEmbeddedScript {}
+class Movie<Set:Cloneable<Set>, Actor, Sound, Song, Prop, VoiceTrack, Camera, LightSource:Jsonable<LightSource>> extends AsyncEmbeddedScript2 {}

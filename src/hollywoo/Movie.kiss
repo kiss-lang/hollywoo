@@ -415,8 +415,9 @@
     (let [args (expList argList)
             numArgs args.length
             methodName (symbolNameValue nameAndType true)
-            &mut readerMacroStart "$(.toUpperCase methodName) "]
-        (when (= 2 numArgs) (set readerMacroStart (StringTools.trim readerMacroStart)))
+            &mut readerMacroStart "$(.toUpperCase methodName) "
+            argSymbolNames (for arg args (symbolNameValue arg true true))]
+        (when (apply and (for name argSymbolNames !(= -1 (.indexOf ["cc" "skipping"] name)))) (set readerMacroStart (StringTools.trim readerMacroStart)))
         `{
             (defReaderMacro ,readerMacroStart [stream &builder b]
                 (let [nextLineStream

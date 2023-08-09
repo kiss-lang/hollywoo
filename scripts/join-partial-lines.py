@@ -124,7 +124,7 @@ def process_chunk(audio_guess, timestamp):
                 print(f'j - join this line {preposition} \033[92m{joining_with_guess}\033[0m')
             else:
                 print('j - join another line onto this line')
-                print('J - join another line this into line')
+                print('J - join another line into this line')
             print(f't - set the delay time (currently {delay_time}')
             as_if_joined = ' as if joined' if joining_with != None else ''
             print(f'p - play this line{as_if_joined}')

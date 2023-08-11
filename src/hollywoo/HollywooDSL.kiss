@@ -7,6 +7,7 @@
 
 (defMacro withProp [propKey name &body body]
     `(let [,name (dictGet props ,propKey)]
+        (assert !isLoading)
         ,@body
         (cc)))
 
@@ -17,6 +18,7 @@
         
 (defMacro withActor [actorKey name &body body]
     `(let [,name (dictGet actors ,actorKey)]
+        (assert !isLoading)
         ,@body
         (cc)))
 
@@ -28,6 +30,7 @@
 // Do something with the given scene's instance of its set
 (defMacro withSceneSet [sceneKey name &body body]
     `(let [,name .set (dictGet scenes ,sceneKey)]
+        (assert !isLoading)
         ,@body
         (cc)))
 

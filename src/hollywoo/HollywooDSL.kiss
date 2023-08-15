@@ -55,7 +55,16 @@
                     })]
         `{
             @:keep
+            (method checkPlayMode [:Void->Void cc]
+                (case hollywoo.Movie.playMode
+                    (NotSet
+                        (hollywoo.Movie.choosePlayMode director cc))
+                    (otherwise
+                        (cc))))
+            @:keep
             (method doPreload [:Void->Void cc]
+                // TODO set director input setting according to watch mode/play mode
+
                 (director.showTitleCard ["LOADING"]
                     (makeCC
                         (set isLoading true)
@@ -68,6 +77,7 @@
                                 (#if debug
                                         (promptToRecord cc)
                                     (cc)))))))
+            @:keep
             (method doCleanup []
                 (director.cleanup)
                 (set lastInstructionPointer -2)
@@ -81,7 +91,7 @@
 (defReaderMacro &bof "" [stream]
     `(#when
         (StringTools.contains kissFile className)
-        (doPreload cc)))
+        (checkPlayMode ->:Void (doPreload cc))))
 (defReaderMacro &eof "" [stream]
     `(#when (StringTools.contains kissFile className)
 

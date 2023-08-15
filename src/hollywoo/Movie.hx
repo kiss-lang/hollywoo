@@ -55,6 +55,12 @@ enum CreditsLine {
     Break;
 }
 
+enum PlayMode {
+    NotSet;
+    Read;
+    Watch;
+}
+
 /**
  * Model/controller of a Hollywoo film, and main execution script
  */

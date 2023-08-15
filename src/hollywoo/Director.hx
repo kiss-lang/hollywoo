@@ -89,6 +89,9 @@ interface Director<Set:Cloneable<Set>, Actor, Sound, Song, Prop, VoiceTrack, Cam
     function showProp(prop:Prop, position:StagePosition, appearance:Appearance, camera:Camera, cc:Continuation):Void;
     function hideProp(prop:Prop, camera:Camera, cc:Continuation):Void;
 
+    function showInputIcon():Void;
+    function hideInputIcon():Void;
+
     function rollCredits(credits:Array<CreditsLine>, cc:Continuation, ?timeLimit:Float):Void;
 
     function doLoading(_load:Array<Void->Void>, cc:Continuation):Void;

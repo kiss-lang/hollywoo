@@ -505,8 +505,10 @@
                             (cc)
                         })))
             (Manual
+                (director.showInputIcon)
                 (director.startWaitForInput
                     ->{
+                        (director.hideInputIcon)
                         (director.stopWaitForInput cc)
                         (cc)
                     }))

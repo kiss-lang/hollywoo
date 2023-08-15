@@ -63,7 +63,12 @@
                         (cc))))
             @:keep
             (method doPreload [:Void->Void cc]
-                // TODO set director input setting according to watch mode/play mode
+                // set director input setting according to watch mode/play mode
+                (set delayHandling
+                    (case hollywoo.Movie.playMode
+                        (Read Manual)
+                        (Watch AutoWithSkip)
+                        (never otherwise)))
 
                 (director.showTitleCard ["LOADING"]
                     (makeCC

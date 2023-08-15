@@ -312,6 +312,14 @@
                         (set Movie.playMode Watch))
                     (never otherwise))
                 ~Movie.playMode
+                
+                (when director.movie
+                    (set director.movie.delayHandling
+                        (case hollywoo.Movie.playMode
+                            (Read Manual)
+                            (Watch AutoWithSkip)
+                            (never otherwise))))
+
                 (cc)
             }))
 

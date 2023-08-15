@@ -73,6 +73,7 @@
         (when ?isSilent (dictSet _silentCustomDialogTypes key true)))
     
     (prop &mut :Void->Void _hideCustomDialog null)
+    (var DELAY_BETWEEN_VOICE_TRACKS 0.1)
     (method :Void showDialog [:Bool skipping actorName dialogType wryly text cc]
         // Hide custom dialog when the next dialog appears unless HIDECUSTOMDIALOG is called manually:
         (when _hideCustomDialog
@@ -87,7 +88,10 @@
                 (let [isSilentType
                             ?(whenLet [(Custom type _ _) dialogType]
                                 (_silentCustomDialogTypes.exists type))
-                        cc ->:Void {(director.hideDialog) (cc)}
+                        cc ->:Void
+                            (delay skipping DELAY_BETWEEN_VOICE_TRACKS ->:Void {
+                                (director.hideDialog) (cc)
+                            })
                         &mut customCC cc
                         &mut skipCC cc]
                     // When an actorName is given, check for a voiced line to play.
@@ -312,7 +316,7 @@
                         (set Movie.playMode Watch))
                     (never otherwise))
                 ~Movie.playMode
-                
+
                 (when director.movie
                     (set director.movie.delayHandling
                         (case hollywoo.Movie.playMode

@@ -590,7 +590,9 @@
     (dictSet songs name song))
 
 (hollywooMethod playSong [:Bool skipping name :Continuation cc &opt :Float volumeMod :Bool loop :Bool waitForEnd]
-    (when skipping
+    // This actually SHOULDN'T skip because the music might be expected to continue on to the place
+    // we skip to:
+    **(when skipping
         (cc)
         (return))
     (set volumeMod (or volumeMod 1))
@@ -604,8 +606,7 @@
     (playSong skipping name cc volumeMod true false))
 
 (hollywooMethod stopSong [:Bool skipping cc]
-    (unless skipping
-        (director.stopSong))
+    (director.stopSong)
     (cc))
 
 (hollywooMethod newActor [name :Actor actor]

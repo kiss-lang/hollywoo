@@ -140,6 +140,10 @@
                                 (throw "No handler for custom dialog type $type")))
                         (otherwise (director.showDialog actorName dialogType wryly text skipCC)))))))
 
+    (method noVoiceTracks [actorName]
+        (dictSet voiceTracksPerActor actorName 0)
+        (dictSet voiceLines actorName (new FuzzyMap<VoiceLine>)))
+
     (method newVoiceTrack [actorName :VoiceTrack track :String lineJson]
         (let [actorNumVoiceTracks (or (dictGet voiceTracksPerActor actorName) 0)
                 trackKey "${actorName}${actorNumVoiceTracks}"

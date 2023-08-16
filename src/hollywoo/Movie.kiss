@@ -600,6 +600,9 @@
     (director.playSong (dictGet songs name) volumeMod ?loop ?waitForEnd cc))
 
 (hollywooMethod awaitPlaySong [:Bool skipping name :Continuation cc &opt :Float volumeMod]
+    (when skipping
+        (cc)
+        (return))
     (playSong skipping name cc volumeMod false true))
     
 (hollywooMethod loopSong [:Bool skipping name :Continuation cc &opt :Float volumeMod]

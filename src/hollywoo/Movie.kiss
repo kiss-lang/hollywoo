@@ -482,7 +482,7 @@
                 strobeSec
                 (* times 2))
             (when cc
-                (TimerWithPause.delay cc (* strobeSec times 2))))))
+                (TimerWithPause.delay cc (* strobeSec 2 (+ 1 times)))))))
 
 // Some real magic happens here. This macro defines a method, AND a reader macro
 // for calling it with skipping and cc passed automatically if cc is an argument.

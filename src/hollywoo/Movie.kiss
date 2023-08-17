@@ -448,7 +448,7 @@
             (cc)
             (return))
 
-        (let [:Dynamic propOrCharacter
+        (let [&mut :Dynamic propOrCharacter
                     // dictGet on a fuzzymap will function as an assertion that the prop or character is already added,
                     // but a try-catch here could make that more clear
                     (if prop
@@ -459,7 +459,10 @@
                 &mut shown true
                 :Function show
                     (if prop
-                            director.showProp
+                            (let [_prop propOrCharacter.prop
+                                    _position propOrCharacter.position]
+                                (set propOrCharacter _prop)
+                                (director.showProp.bind _ _position))
                         director.showCharacter)
                 :Function hide
                     (if prop
@@ -715,6 +718,22 @@
                         (addCharacter actorNameA bsp bsf
                             (makeCC
                                 (addCharacter actorNameB asp asf cc)))))))))
+
+// Strobe and continue the script:
+(hollywooMethod strobeCharacter [:Bool skipping :String actorName :Float sec :Int times :Continuation cc]
+    (_strobe skipping false actorName sec times)
+    (cc))
+
+(hollywooMethod strobeProp [:Bool skipping :String propName :Float sec :Int times :Continuation cc]
+    (_strobe skipping true propName sec times)
+    (cc))
+
+// Strobe and wait for it to finish:
+(hollywooMethod awaitStrobeCharacter [:Bool skipping :String actorName :Float sec :Int times :Continuation cc]
+    (_strobe skipping false actorName sec times cc))
+
+(hollywooMethod awaitStrobeProp [:Bool skipping :String propName :Float sec :Int times :Continuation cc]
+    (_strobe skipping true propName sec times cc))
 
 // TODO moveCharacter remove them, add them to another scene
 // TODO moveCharacterAndFollow remove them, add them to another scene, set that the scene

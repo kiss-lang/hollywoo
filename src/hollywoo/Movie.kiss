@@ -444,8 +444,9 @@
 (#unless subclass
     @:keep
     (method :Void _strobe [:Bool skipping :Bool prop :String actorOrPropKey :Float strobeSec :Int times &opt :Continuation cc]
-        (when (and skipping cc)
-            (cc)
+        (when skipping
+            (when cc
+                (cc))
             (return))
 
         (let [&mut :Dynamic propOrCharacter

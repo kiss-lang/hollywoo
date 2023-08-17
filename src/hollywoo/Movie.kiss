@@ -441,6 +441,46 @@
     `(preload
         (_indexAssetPaths ,dir)))
 
+(#unless subclass
+    @:keep
+    (method :Void _strobe [:Bool skipping :Bool prop :String actorOrPropKey :Float strobeSec :Int times &opt :Continuation cc]
+        (when (and skipping cc)
+            (cc)
+            (return))
+
+        (let [:Dynamic propOrCharacter
+                    // dictGet on a fuzzymap will function as an assertion that the prop or character is already added,
+                    // but a try-catch here could make that more clear
+                    (if prop
+                            (dictGet .props (_currentScene) actorOrPropKey)
+                        (dictGet .characters (_currentScene) actorOrPropKey))
+                appearance ReAppearance
+                camera .camera (_currentScene)
+                &mut shown true
+                :Function show
+                    (if prop
+                            director.showProp
+                        director.showCharacter)
+                :Function hide
+                    (if prop
+                            director.hideProp
+                        director.hideCharacter)]
+            (TimerWithPause.interval
+                ->:Void
+                    (if shown
+                            {
+                                (hide propOrCharacter camera ->:Void {})
+                                (set shown false)
+                            }
+                        {
+                            (show propOrCharacter appearance camera ->:Void {})
+                            (set shown true)
+                        })
+                strobeSec
+                (* times 2))
+            (when cc
+                (TimerWithPause.delay cc (* strobeSec times 2))))))
+
 // Some real magic happens here. This macro defines a method, AND a reader macro
 // for calling it with skipping and cc passed automatically if cc is an argument.
 // GOTCHA: DO NOT use (method) directly in this file!!

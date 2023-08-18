@@ -257,6 +257,7 @@
                 position)
             (otherwise (throw "Not a position or position key: $position"))))
 
+    (prop &mut :String loopingSoundKey null)
     (prop &mut :Sound loopingSound null)
 
     (#when (or sys hxnodejs)
@@ -631,11 +632,19 @@
 
 (hollywooMethod stopSound [:Bool skipping name :Continuation cc]
     (unless skipping
+        (when (= loopingSound (dictGet sounds name))
+            (set loopingSound null))
         (director.stopSound (dictGet sounds name)))
     (cc))
 
 (hollywooMethod loopSound [:Bool skipping name :Continuation cc &opt :Float volumeMod :Bool recursive]
-    (assert (or !loopingSound recursive))
+    (when skipping
+        (cc)
+        (return))
+    (when (and loopingSound !recursive)
+        (stopLoopingSound skipping (makeCC null))
+        (print "Warning! The sound '${loopingSoundKey}' was apparently looping already."))
+    (set loopingSoundKey name)
     (set loopingSound (dictGet sounds name))
     (playSound skipping name (makeCC (loopSound skipping name cc volumeMod true)) volumeMod true)
     (cc))

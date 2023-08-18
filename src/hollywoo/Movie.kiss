@@ -257,6 +257,8 @@
                 position)
             (otherwise (throw "Not a position or position key: $position"))))
 
+    (prop &mut :Sound loopingSound null)
+
     (#when (or sys hxnodejs)
         (prop :FuzzyMap<FuzzyMap<String>> assetPaths (new FuzzyMap))
         (prop :Array<Array<String>> loadedCredits [])
@@ -626,9 +628,22 @@
 (hollywooMethod awaitPlaySound [:Bool skipping name :Continuation cc &opt :Float volumeMod]
     (playSound skipping name cc volumeMod true))
 
+
 (hollywooMethod stopSound [:Bool skipping name :Continuation cc]
     (unless skipping
         (director.stopSound (dictGet sounds name)))
+    (cc))
+
+(hollywooMethod loopSound [:Bool skipping name :Continuation cc &opt :Float volumeMod :Bool recursive]
+    (assert (or !loopingSound recursive))
+    (set loopingSound (dictGet sounds name))
+    (playSound skipping name (makeCC (loopSound skipping name cc volumeMod true)) volumeMod true)
+    (cc))
+
+(hollywooMethod stopLoopingSound [:Bool skipping :Continuation cc]
+    (unless skipping
+        (director.stopSound loopingSound)
+        (set loopingSound null))
     (cc))
 
 (hollywooMethod newSong [name :Song song]

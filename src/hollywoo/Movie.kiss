@@ -651,7 +651,8 @@
 
 (hollywooMethod stopLoopingSound [:Bool skipping :Continuation cc]
     (unless skipping
-        (director.stopSound loopingSound)
+        (when loopingSound
+            (director.stopSound loopingSound))
         (set loopingSound null))
     (cc))
 

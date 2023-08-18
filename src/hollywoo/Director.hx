@@ -60,7 +60,7 @@ interface Director<Set:Cloneable<Set>, Actor, Sound, Song, Prop, VoiceTrack, Cam
     function showCharacter(character:Character<Actor>, appearance:Appearance, camera:Camera, cc:Continuation):Void;
     function hideCharacter(character:Character<Actor>, camera:Camera, cc:Continuation):Void;
 
-    function playSound(sound:Sound, volumeMod:Float, waitForEnd:Bool, cc:Continuation):Void;
+    function playSound(sound:Sound, volumeMod:Float, ?cc:Continuation):Void;
     function getSoundLength(sound:Sound):Float;
     function stopSound(sound:Sound):Void;
 

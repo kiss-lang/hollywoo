@@ -839,7 +839,7 @@
         (makeCC
             (showDialog skipping actorName (Custom type (dictGet .characters (_currentScene) actorName) args) wryly text cc))))
 
-(hollywooMethod timedCutToBlack [:Bool skipping seconds :Continuation cc]
+(hollywooMethod timedCutToBlack [:Bool skipping :Dynamic seconds :Continuation cc]
     (when skipping
         (cc)
         (return))

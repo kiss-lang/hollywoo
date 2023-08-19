@@ -61,6 +61,7 @@ def process_chunk(audio_guess, timestamp):
         choice = getch()
         if choice == 'u':
             cutter.take_audio(audio_guess, timestamp, timestamp['start'], timestamp['end'])
+            break
         elif choice == 'd':
             break
         elif choice == 'J':

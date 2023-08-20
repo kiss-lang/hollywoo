@@ -14,6 +14,8 @@
     (prop &mut :Int captionId 0)
 
     (prop :Array<HistoryElement<Actor>> dialogHistory [])
+    (var MAX_DIALOG_HISTORY 50)
+
 
     // Mostly immutable, reusable resources:
     (prop :FuzzyMap<Set> sets (new FuzzyMap<Set>))
@@ -373,7 +375,12 @@
             (shortcutHandler.registerItem "{escape} Pause the movie"
                 ->cc (director.showPauseMenu cc))
             (shortcutHandler.registerItem "{tab} show dialog history"
-                ->cc (director.showDialogHistory dialogHistory cc))
+                ->cc {
+                    (director.showDialogHistory
+                        (if (> dialogHistory.length MAX_DIALOG_HISTORY)
+                                (dialogHistory.slice (- dialogHistory.length MAX_DIALOG_HISTORY))
+                            dialogHistory) cc)
+                })
             
             (#when debug
                 (shortcutHandler.registerItem "[d]efine [d]elay"

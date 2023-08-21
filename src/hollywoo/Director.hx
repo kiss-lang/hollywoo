@@ -69,6 +69,7 @@ interface Director<Set:Cloneable<Set>, Actor, Sound, Song, Prop, VoiceTrack, Cam
 
     function playSong(song:Song, volumeMod:Float, loop:Bool, waitForEnd:Bool, cc:Continuation):Void;
     function getSongLength(song:Song):Float;
+    function changeSongVolume(volumeMod:Float, cc:Continuation):Void;
     function stopSong():Void;
 
     function playVoiceTrack(track:VoiceTrack, volumeMod:Float, start:Float, end:Float, cc:Continuation):Void;

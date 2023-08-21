@@ -355,6 +355,9 @@
                 (new JsonMap delayLengthsJson (new HFloat 0.5))
             :JsonStringMap voiceLineMatches
                 (new JsonMap voiceLineMatchesJson (new JsonableString ""))
+            :Map<String,String> sceneMusic (new Map)
+            :Map<String,Float> sceneMusicVolume (new Map)
+            &mut :String playingSceneMusic null
         ]
 
         (set director.movie this)
@@ -592,11 +595,37 @@
                                 time
                                 perspective)))
 
+(hollywooMethod setSceneSong [:String scene :String songKey &opt :Float volumeMod :Continuation cc]
+    (dictSet sceneMusic scene songKey)
+    (dictSet sceneMusicVolume scene volumeMod)
+    (when cc (cc)))
+
+(hollywooMethod setCurrentSceneSong [:String songKey :Continuation cc &opt :Float volumeMod]
+    (dictSet sceneMusic sceneKey songKey)
+    (dictSet sceneMusicVolume sceneKey volumeMod)
+    (cond 
+        ((= playingSceneMusic songKey)
+            (changeSongVolume volumeMod cc))
+        (true
+            (set playingSceneMusic songKey)
+            (stopSong (makeCC null))
+            (loopSong songKey (makeCC null) volumeMod)
+            (cc))))
+
 (hollywooMethod setScene [name :Continuation cc]
     (_hideCurrentScene
         (makeCC
             (let [name (FuzzyMapTools.bestMatch scenes name)]
                 (set sceneKey name)
+                (ifLet [songKey (dictGet sceneMusic name)]
+                            // Keep the song going if it's the same as current. Otherwise, take over!
+                            (unless (= playingSceneMusic songKey)
+                                (set playingSceneMusic songKey)
+                                (stopSong (makeCC null))
+                                (loopSong songKey (makeCC null) (dictGet sceneMusicVolume name)))
+                    (when playingSceneMusic
+                        (set playingSceneMusic null)
+                        (stopSong (makeCC null))))
                 (unless (positionsInScene.exists sceneKey)
                     (dictSet positionsInScene sceneKey []))
                 (_showScene
@@ -667,26 +696,26 @@
     (assert isLoading)
     (dictSet songs name song))
 
-(hollywooMethod playSong [:Bool skipping name :Continuation cc &opt :Float volumeMod :Bool loop :Bool waitForEnd]
-    // This actually SHOULDN'T skip because the music might be expected to continue on to the place
-    // we skip to:
-    **(when skipping
-        (cc)
-        (return))
+// This is never skipped because the music might be expected to continue on to the place
+// we skip to:
+(hollywooMethod playSong [name :Continuation cc &opt :Float volumeMod :Bool loop :Bool waitForEnd]
     (set volumeMod (or volumeMod 1))
     (assert (<= 0 volumeMod 1))
     (director.playSong (dictGet songs name) volumeMod ?loop ?waitForEnd cc))
+
+(hollywooMethod changeSongVolume [:Float volumeMod :Continuation cc]
+    (director.changeSongVolume volumeMod cc))
 
 (hollywooMethod awaitPlaySong [:Bool skipping name :Continuation cc &opt :Float volumeMod]
     (when skipping
         (cc)
         (return))
-    (playSong skipping name cc volumeMod false true))
+    (playSong name cc volumeMod false true))
     
-(hollywooMethod loopSong [:Bool skipping name :Continuation cc &opt :Float volumeMod]
-    (playSong skipping name cc volumeMod true false))
+(hollywooMethod loopSong [name :Continuation cc &opt :Float volumeMod]
+    (playSong name cc volumeMod true false))
 
-(hollywooMethod stopSong [:Bool skipping cc]
+(hollywooMethod stopSong [cc]
     (director.stopSong)
     (cc))
 
@@ -960,10 +989,10 @@
     (when skipping
         (cc)
         (return))
-    (playSong skipping songKey (makeCC null) volumeMod)
+    (playSong songKey (makeCC null) volumeMod)
     (rollCredits
         skipping 
         creditsTSV
         (makeCC
-            (stopSong skipping cc))
+            (stopSong cc))
         (director.getSongLength (dictGet songs songKey))))

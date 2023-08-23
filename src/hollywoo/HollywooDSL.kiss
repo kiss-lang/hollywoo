@@ -109,6 +109,7 @@
                 (dictSet v "AwayFromPosition" hollywoo.Director.StageFacing.AwayFromPosition)))
 
         (cleanup
+            (hideCustomDialog ->:Void {})
             (#when debug
                 (stopPromptedRecording)))
             

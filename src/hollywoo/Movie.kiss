@@ -259,8 +259,7 @@
                 position)
             (otherwise (throw "Not a position or position key: $position"))))
 
-    (prop &mut :String loopingSoundKey null)
-    (prop &mut :Sound loopingSound null)
+    (prop &mut :Map<String,Continuation> loopingSoundPlays (new Map))
 
     (#when (or sys hxnodejs)
         (prop :FuzzyMap<FuzzyMap<String>> assetPaths (new FuzzyMap))
@@ -667,29 +666,30 @@
 
 
 (hollywooMethod stopSound [:Bool skipping name :Continuation cc]
-    (unless skipping
-        (when (= loopingSound (dictGet sounds name))
-            (set loopingSound null))
-        (director.stopSound (dictGet sounds name)))
+    (let [name (FuzzyMapTools.bestMatch sounds name)]
+        (loopingSoundPlays.remove name)
+        (unless skipping
+            (director.stopSound (dictGet sounds name))))
     (cc))
 
-(hollywooMethod loopSound [:Bool skipping name :Continuation cc &opt :Float volumeMod :Bool recursive]
-    (when skipping
-        (cc)
-        (return))
-    (when (and loopingSound !recursive)
-        (stopLoopingSound skipping (makeCC null))
-        (print "Warning! The sound '${loopingSoundKey}' was apparently looping already."))
-    (set loopingSoundKey name)
-    (set loopingSound (dictGet sounds name))
-    (playSound skipping name (makeCC (loopSound skipping name cc volumeMod true)) volumeMod true)
-    (cc))
-
-(hollywooMethod stopLoopingSound [:Bool skipping :Continuation cc]
-    (unless skipping
-        (when loopingSound
-            (director.stopSound loopingSound))
-        (set loopingSound null))
+(hollywooMethod loopSound [:Bool skipping name :Continuation cc &opt :Float volumeMod]
+    // Even when skipping, create a lambda that plays an iteration of the sound,
+    // so if skipping ends and the sound is still supposed to be looping,
+    // we can start it!
+    (let [name (FuzzyMapTools.bestMatch sounds name)]
+        (withFunctions
+            [
+                (:Void playAgain []
+                    (playSound skipping name
+                        (makeCC
+                            (when (loopingSoundPlays.exists name)
+                                (playAgain)))
+                        volumeMod
+                        true))
+            ]
+            (dictSet loopingSoundPlays name playAgain)
+            (unless skipping
+                (playAgain))))
     (cc))
 
 (hollywooMethod newSong [name :Song song]

@@ -1,0 +1,10 @@
+* DONE for all asset types, make the Director define load*()
+* DONE instead of requiring Cloneable<Set>, add Director.cloneSet()
+* DONE in all newMethods take a path, not the object.
+** DONE allow for alternative loading with the object directly, like how some props in HollywooFlixel are animated via ActorFlxSprite
+** DONE if the assetpath doesn't start with assets/, call (assetPath "<typeDir>" "<path>")
+** DONE make loading things at runtime a compiler error 
+* TODO in all new* methods, save the path that was loaded
+* TODO in all with_ macros, mark those assets as dirty (needing to be reloaded)
+* TODO Movie.scavenge before cleanup
+* TODO in all new* methods, don't load the new thing if it exists already

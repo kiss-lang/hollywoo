@@ -38,7 +38,7 @@ typedef StageProp<Prop> = {
     prop:Prop
 };
 
-typedef Scene<Set:Cloneable<Set>, Actor, Prop, Camera> = {
+typedef Scene<Set, Actor, Prop, Camera> = {
     set:Set,
     characters:FuzzyMap<Character<Actor>>,
     props:FuzzyMap<StageProp<Prop>>,

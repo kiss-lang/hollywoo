@@ -20,10 +20,6 @@ import kiss_tools.TimerWithPause;
 
 using kiss.FuzzyMapTools;
 
-typedef Cloneable<T> = {
-    function clone():T;
-}
-
 enum DelayHandling {
     Auto;
     AutoWithSkip;
@@ -65,4 +61,4 @@ enum PlayMode {
  * Model/controller of a Hollywoo film, and main execution script
  */
 @:build(kiss.Kiss.build())
-class Movie<Set:Cloneable<Set>, Actor, Sound, Song, Prop, VoiceTrack, Camera, LightSource:Jsonable<LightSource>> extends AsyncEmbeddedScript2 {}
+class Movie<Set, Actor, Sound, Song, Prop, VoiceTrack, Camera, LightSource:Jsonable<LightSource>> extends AsyncEmbeddedScript2 {}

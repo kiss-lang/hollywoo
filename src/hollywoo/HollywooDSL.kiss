@@ -73,15 +73,29 @@
                 (director.showTitleCard ["LOADING"]
                     (makeCC
                         (set isLoading true)
-                        (director.doLoading ,preloadFuncs
-                            (makeCC
-                                (set isLoading false)
-                                (.start (director.shortcutHandler))
-                                (director.hideTitleCard)
-                                // When all loading is done, prompt to start obs recording automatically:
-                                (#if debug
-                                        (promptToRecord cc)
-                                    (cc)))))))
+                        (let [loadVoiceTrack _loadVoiceTrack
+                                addVoiceTrack _addVoiceTrack
+                                noVoiceTracks _noVoiceTracks
+                                loadProp _loadProp
+                                addProp _addProp
+                                loadSong _loadSong
+                                addSong _addSong
+                                loadActor _loadActor
+                                addActor _addActor
+                                loadSet _loadSet
+                                addSet _addSet
+                                newSceneFromSet _newSceneFromSet
+                                loadSound _loadSound
+                                addSound _addSound]
+                            (director.doLoading ,preloadFuncs
+                                (makeCC
+                                    (set isLoading false)
+                                    (.start (director.shortcutHandler))
+                                    (director.hideTitleCard)
+                                    // When all loading is done, prompt to start obs recording automatically:
+                                    (#if debug
+                                            (promptToRecord cc)
+                                        (cc))))))))
             @:keep
             (method doCleanup []
                 (director.cleanup)

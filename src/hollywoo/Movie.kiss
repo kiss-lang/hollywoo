@@ -27,6 +27,8 @@
     (prop :Map<String,VoiceTrack> voiceTracks (new Map))
     (prop :Map<String,CustomDialogTypeHandler<Actor>> _customDialogTypeHandlers (new Map))
     (prop :FuzzyMap<FuzzyMap<VoiceLine>> voiceLines (new FuzzyMap<FuzzyMap<VoiceLine>>))
+    (prop :Map<String,Bool> dirtyActors (new Map))
+    (prop :Map<String,Bool> dirtyProps (new Map))
     
     // Used to give unique, persistent IDs to voice tracks
     (prop :Map<String,Int> voiceTracksPerActor (new Map))
@@ -46,6 +48,39 @@
 
     // This is set and unset by doPreload defined in HollywooDSL.kiss
     (prop &mut isLoading false)
+
+    // Reuse as many loaded assets from the previously running Movie as safely possible
+    (method scavengeObjects [:Movie<Set,Actor,Sound,Song,Prop,VoiceTrack,Camera,LightSource> movie]
+        (let [&mut t 0
+                &mut c 0]
+            (doFor =>key actor movie.actors
+                (+= t 1)
+                (unless (movie.dirtyActors.exists key)
+                    (+= c 1)
+                    (dictSet actors key actor)
+                    (movie.actors.remove key)))
+            (doFor =>key prop movie.props
+                (+= t 1)
+                (unless (movie.dirtyProps.exists key)
+                    (+= c 1)
+                    (dictSet props key prop)
+                    (movie.props.remove key)))
+            (doFor =>key sound movie.sounds
+                (+= t 1)
+                (+= c 1)
+                (dictSet sounds key sound)
+                (movie.sounds.remove key))
+            (doFor =>key song movie.songs
+                (+= t 1)
+                (+= c 1)
+                (dictSet songs key song)
+                (movie.songs.remove key))
+            (doFor =>key voiceTrack movie.voiceTracks
+                (+= t 1)
+                (+= c 1)
+                (dictSet voiceTracks key voiceTrack)
+                (movie.voiceTracks.remove key))
+            (print "scavenge reused ${c}/${t} objects")))
 
     (function :Appearance appearanceFlag [:Map<String,Bool> map :String key]
         (if (dictGet map key)
@@ -151,6 +186,8 @@
                     ,@body)
             body))
 
+    (prop &mut loadedObjects 0)
+    (prop &mut loadCalls 0)
     // Methods for loading new assets in a hollywoo movie follow a special naming convention.
     // _add*()  is a method which takes the asset DIRECTLY and adds it to the corresponding asset map.
     //          This is to be used in cases where the asset needs to be loaded specially in a way
@@ -167,8 +204,16 @@
     //          even following the usage of the assets they load. Runtime loading allows for errors
     //          caused by moving the load calls or asset usages around so the load doesn't precede the usage.
     (method _loadVoiceTrack [actorName :String path :String lineJson]
-        (withIndexedPath path "vo"
-            (_addVoiceTrack actorName (director.loadVoiceTrack path) lineJson)))
+        (+= loadCalls 1)
+        (let [actorNumVoiceTracks (or (dictGet voiceTracksPerActor actorName) 0)
+                trackKey "${actorName}${actorNumVoiceTracks}"]
+            (cond
+                ((voiceTracks.exists trackKey)
+                    (dictSet voiceTracksPerActor actorName (+ 1 actorNumVoiceTracks)))
+                (true
+                    (withIndexedPath path "vo"
+                        (+= loadedObjects 1)
+                        (_addVoiceTrack actorName (director.loadVoiceTrack path) lineJson))))))
 
     (method _addVoiceTrack [actorName :VoiceTrack track :String lineJson]
         (assert isLoading)
@@ -192,32 +237,44 @@
         (dictSet voiceLines actorName (new FuzzyMap<VoiceLine>)))
 
     (method _loadProp [name :String path]
-        (withIndexedPath path "images"
-            (_addProp name (director.loadProp path))))
+        (+= loadCalls 1)
+        (unless (props.existsExactly name)
+            (withIndexedPath path "images"
+                (+= loadedObjects 1)
+                (_addProp name (director.loadProp path)))))
 
     (method _addProp [name :Prop prop]
         (assert isLoading)
         (dictSet props name prop))
 
     (method _loadSong [name :String path]
-        (withIndexedPath path "music"
-            (_addSong name (director.loadSong path))))
+        (+= loadCalls 1)
+        (unless (songs.existsExactly name)
+            (withIndexedPath path "music"
+                (+= loadedObjects 1)
+                (_addSong name (director.loadSong path)))))
 
     (method _addSong [name :Song song]
         (assert isLoading)
         (dictSet songs name song))
 
     (method _loadActor [name :String path]
-        (withIndexedPath path "images"
-            (_addActor name (director.loadActor path))))
+        (+= loadCalls 1)
+        (unless (actors.existsExactly name)
+            (withIndexedPath path "images"
+                (+= loadedObjects 1)
+                (_addActor name (director.loadActor path)))))
 
     (method _addActor [name :Actor actor]
         (assert isLoading)
         (dictSet actors name actor))
 
     (method _loadSet [name :String path]
-        (withIndexedPath path "images"
-            (_addSet name (director.loadSet path))))
+        (+= loadCalls 1)
+        (unless (sets.existsExactly name)
+            (withIndexedPath path "images"
+                (+= loadedObjects 1)
+                (_addSet name (director.loadSet path)))))
 
     (method _addSet [name :Set set]
         (assert isLoading)
@@ -240,8 +297,11 @@
                                     perspective)))
 
     (method _loadSound [name :String path :String description]
-        (withIndexedPath path "sounds"
-            (_addSound name (director.loadSound path) description)))
+        (+= loadCalls 1)
+        (unless (sounds.existsExactly name)
+            (withIndexedPath path "sounds"
+                (+= loadedObjects 1)
+                (_addSound name (director.loadSound path) description))))
 
     (method _addSound [name :Sound s :String description]
         (assert isLoading)

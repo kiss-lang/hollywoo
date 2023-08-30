@@ -80,6 +80,8 @@
                 (+= c 1)
                 (dictSet voiceTracks key voiceTrack)
                 (movie.voiceTracks.remove key))
+            (doFor =>actor vl movie.voiceLines
+                (dictSet voiceLines actor vl))
             (print "scavenge reused ${c}/${t} objects")))
 
     (function :Appearance appearanceFlag [:Map<String,Bool> map :String key]

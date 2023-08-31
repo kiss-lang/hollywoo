@@ -105,7 +105,14 @@
             (method doCleanup []
                 (director.cleanup)
                 (set lastInstructionPointer -2)
-                (collectedBlocks cleanup))
+                (collectedBlocks cleanup)
+                (stagePositions.m.clear)
+                (lightSources.m.clear)
+                (delayLengths.m.clear)
+                (voiceLineMatches.m.clear)
+                (sceneMusic.clear)
+                (sceneMusicVolume.clear)
+                )
             (doCleanup)
             
             (when onComplete

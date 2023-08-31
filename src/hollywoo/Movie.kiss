@@ -68,6 +68,7 @@
             (doFor =>key sound movie.sounds
                 (+= t 1)
                 (+= c 1)
+                (dictSet soundDescriptions key (dictGet movie.soundDescriptions key))
                 (dictSet sounds key sound)
                 (movie.sounds.remove key))
             (doFor =>key song movie.songs

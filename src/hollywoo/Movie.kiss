@@ -16,6 +16,9 @@
     (prop :Array<HistoryElement<Actor>> dialogHistory [])
     (var MAX_DIALOG_HISTORY 50)
 
+    (prop &mut :String currentSong "")
+    (prop &mut :Float currentSongVolumeMod 0)
+    (prop &mut :Bool currentSongLooping false)
 
     // Mostly immutable, reusable resources:
     (prop :FuzzyMap<Set> sets (new FuzzyMap<Set>))
@@ -98,11 +101,11 @@
 
     (prop &mut :FuzzyMap<String> intercutMap)
     (prop &mut :Map<String,Int> altIdx (new Map))
-    (method :Void processIntercut [actorName :Continuation cc]
+    (method :Void processIntercut [:Bool skipping :String actorName :Continuation cc]
         (when intercutMap
             (whenLet [sceneForActor (try (dictGet intercutMap actorName) (catch [e] null))]
                 (unless (= sceneForActor sceneKey)
-                    (setScene sceneForActor cc)
+                    (setScene skipping sceneForActor cc)
                     (return))))
         (cc))
     
@@ -123,7 +126,7 @@
         (when skipping
             (cc)
             (return))
-        (processIntercut actorName
+        (processIntercut skipping actorName
             (makeCC
                 (let [isSilentType
                             ?(whenLet [(Custom type _ _) dialogType]
@@ -510,8 +513,15 @@
             :Map<String,Float> sceneMusicVolume (new Map)
             &mut :String playingSceneMusic null
         ]
-
+        (super)
         (set director.movie this)
+        (set onSkipEnd
+            ->:Void {
+                (doFor play loopingSoundPlays
+                    (play))
+                (when currentSong
+                    (playSong false currentSong ->:Void {} currentSongVolumeMod currentSongLooping false))
+            })
 
         (let [shortcutHandler (director.shortcutHandler)
                 cc ->(resume)]
@@ -595,9 +605,7 @@
                                 ->label {
                                             (resume)
                                             ((dictGet runners label))
-                                        })))))
-
-        (super))
+                                        }))))))
         
     @:keep
     (method :Void _strobe [:Bool skipping :Bool prop :String actorOrPropKey :Float strobeSec :Int times &opt :Continuation cc]
@@ -731,19 +739,19 @@
     (dictSet sceneMusicVolume scene volumeMod)
     (when cc (cc)))
 
-(hollywooMethod setCurrentSceneSong [:String songKey :Continuation cc &opt :Float volumeMod]
+(hollywooMethod setCurrentSceneSong [:Bool skipping :String songKey :Continuation cc &opt :Float volumeMod]
     (dictSet sceneMusic sceneKey songKey)
     (dictSet sceneMusicVolume sceneKey volumeMod)
     (cond 
         ((= playingSceneMusic songKey)
-            (changeSongVolume volumeMod cc))
+            (changeSongVolume skipping volumeMod cc))
         (true
             (set playingSceneMusic songKey)
-            (stopSong (makeCC null))
-            (loopSong songKey (makeCC null) volumeMod)
+            (stopSong skipping (makeCC null))
+            (loopSong skipping songKey (makeCC null) volumeMod)
             (cc))))
 
-(hollywooMethod setScene [name :Continuation cc]
+(hollywooMethod setScene [:Bool skipping :String name :Continuation cc]
     (_hideCurrentScene
         (makeCC
             (let [name (FuzzyMapTools.bestMatch scenes name)]
@@ -752,11 +760,11 @@
                             // Keep the song going if it's the same as current. Otherwise, take over!
                             (unless (= playingSceneMusic songKey)
                                 (set playingSceneMusic songKey)
-                                (stopSong (makeCC null))
-                                (loopSong songKey (makeCC null) (dictGet sceneMusicVolume name)))
+                                (stopSong skipping (makeCC null))
+                                (loopSong skipping songKey (makeCC null) (dictGet sceneMusicVolume name)))
                     (when playingSceneMusic
                         (set playingSceneMusic null)
-                        (stopSong (makeCC null))))
+                        (stopSong skipping (makeCC null))))
                 (unless (positionsInScene.exists sceneKey)
                     (dictSet positionsInScene sceneKey []))
                 (_showScene
@@ -765,7 +773,7 @@
                     .camera (dictGet scenes name)
                     cc)))))
     
-(hollywooMethod playSound [:Bool skipping name :Continuation cc &opt :Float volumeMod :Bool waitForEnd]
+(hollywooMethod playSound [:Bool skipping :String name :Continuation cc &opt :Float volumeMod :Bool waitForEnd]
     (when skipping
         (cc)
         (return))
@@ -787,18 +795,19 @@
     (unless waitForEnd
         (cc)))
 
-(hollywooMethod awaitPlaySound [:Bool skipping name :Continuation cc &opt :Float volumeMod]
+(hollywooMethod awaitPlaySound [:Bool skipping :String name :Continuation cc &opt :Float volumeMod]
+    (director.startWaitForInput cc)
     (playSound skipping name cc volumeMod true))
 
 
-(hollywooMethod stopSound [:Bool skipping name :Continuation cc]
+(hollywooMethod stopSound [:Bool skipping :String name :Continuation cc]
     (let [name (FuzzyMapTools.bestMatch sounds name)]
         (loopingSoundPlays.remove name)
         (unless skipping
             (director.stopSound (dictGet sounds name))))
     (cc))
 
-(hollywooMethod loopSound [:Bool skipping name :Continuation cc &opt :Float volumeMod]
+(hollywooMethod loopSound [:Bool skipping :String name :Continuation cc &opt :Float volumeMod]
     // Even when skipping, create a lambda that plays an iteration of the sound,
     // so if skipping ends and the sound is still supposed to be looping,
     // we can start it!
@@ -806,7 +815,7 @@
         (withFunctions
             [
                 (:Void playAgain []
-                    (playSound skipping name
+                    (playSound false name
                         (makeCC
                             (when (loopingSoundPlays.exists name)
                                 (playAgain)))
@@ -818,27 +827,37 @@
                 (playAgain))))
     (cc))
 
-// This is never skipped because the music might be expected to continue on to the place
-// we skip to:
-(hollywooMethod playSong [name :Continuation cc &opt :Float volumeMod :Bool loop :Bool waitForEnd]
+(hollywooMethod playSong [:Bool skipping :String name :Continuation cc &opt :Float volumeMod :Bool loop :Bool waitForEnd]
     (set volumeMod (or volumeMod 1))
     (assert (<= 0 volumeMod 1))
-    (director.playSong (dictGet songs name) volumeMod ?loop ?waitForEnd cc))
-
-(hollywooMethod changeSongVolume [:Float volumeMod :Continuation cc]
-    (director.changeSongVolume volumeMod cc))
-
-(hollywooMethod awaitPlaySong [:Bool skipping name :Continuation cc &opt :Float volumeMod]
+    (set currentSong (FuzzyMapTools.bestMatch songs name))
+    (set currentSongVolumeMod volumeMod)
+    (set currentSongLooping ?loop)
     (when skipping
         (cc)
         (return))
-    (playSong name cc volumeMod false true))
-    
-(hollywooMethod loopSong [name :Continuation cc &opt :Float volumeMod]
-    (playSong name cc volumeMod true false))
+    (director.playSong (dictGet songs currentSong) volumeMod ?loop ?waitForEnd cc))
 
-(hollywooMethod stopSong [cc]
-    (director.stopSong)
+(hollywooMethod changeSongVolume [:Bool skipping :Float volumeMod :Continuation cc]
+    (set currentSongVolumeMod volumeMod)
+    (when skipping
+        (cc)
+        (return))
+    (director.changeSongVolume volumeMod cc))
+
+(hollywooMethod awaitPlaySong [:Bool skipping :String name :Continuation cc &opt :Float volumeMod]
+    (when skipping
+        (cc)
+        (return))
+    (playSong skipping name cc volumeMod false true))
+    
+(hollywooMethod loopSong [:Bool skipping :String name :Continuation cc &opt :Float volumeMod]
+    (playSong skipping name cc volumeMod true false))
+
+(hollywooMethod stopSong [:Bool skipping cc]
+    (set currentSong "")
+    (unless skipping
+        (director.stopSong))
     (cc))
 
 (hollywooMethod autoZProcess [:StagePosition position :Continuation cc]
@@ -977,7 +996,7 @@
 // TODO themed superText
 
 (hollywooMethod normalSpeech [:Bool skipping actorName wryly text :Continuation cc]
-    (processIntercut actorName
+    (processIntercut skipping actorName
         (makeCC
             (showDialog skipping actorName (OnScreen (dictGet .characters (_currentScene) actorName)) wryly text cc))))
 
@@ -988,14 +1007,14 @@
     (showDialog skipping actorName (VoiceOver (dictGet actors actorName)) wryly text cc))
 
 (hollywooMethod onPhoneSpeech [:Bool skipping actorName wryly text :Continuation cc]
-    (processIntercut actorName
+    (processIntercut skipping actorName
         (makeCC
             (showDialog skipping actorName (ifLet [charOnScreen (try (dictGet .characters (_currentScene) actorName) (catch [e] null))]
                                             (OnScreen charOnScreen)
                                         (FromPhone (dictGet actors actorName))) wryly text cc))))
 
 (hollywooMethod customSpeech [:Bool skipping type actorName wryly args text :Continuation cc]
-    (processIntercut actorName
+    (processIntercut skipping actorName
         (makeCC
             (showDialog skipping actorName (Custom type (dictGet .characters (_currentScene) actorName) args) wryly text cc))))
 
@@ -1103,10 +1122,10 @@
     (when skipping
         (cc)
         (return))
-    (playSong songKey (makeCC null) volumeMod)
+    (playSong skipping songKey (makeCC null) volumeMod)
     (rollCredits
         skipping 
         creditsTSV
         (makeCC
-            (stopSong cc))
+            (stopSong skipping cc))
         (director.getSongLength (dictGet songs songKey))))

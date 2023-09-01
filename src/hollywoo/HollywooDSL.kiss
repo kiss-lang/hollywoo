@@ -105,6 +105,7 @@
             (method doCleanup []
                 (director.cleanup)
                 (set lastInstructionPointer -2)
+                (set instructions null)
                 (collectedBlocks cleanup)
                 (stagePositions.m.clear)
                 (lightSources.m.clear)

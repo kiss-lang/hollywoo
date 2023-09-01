@@ -791,12 +791,14 @@
             (delay skipping (min MAX_CAPTION_DURATION (director.getSoundLength sound))
                 (makeCC
                     (director.hideCaption id))))
-        (director.playSound sound volumeMod (when waitForEnd cc)))
+
+        (withFunctions [(:Void innerCC [] (director.stopSound sound)(director.stopWaitForInput innerCC)(cc))]
+            (director.startWaitForInput innerCC)
+            (director.playSound sound volumeMod (when waitForEnd innerCC))))
     (unless waitForEnd
         (cc)))
 
 (hollywooMethod awaitPlaySound [:Bool skipping :String name :Continuation cc &opt :Float volumeMod]
-    (director.startWaitForInput cc)
     (playSound skipping name cc volumeMod true))
 
 

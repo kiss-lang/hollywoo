@@ -754,26 +754,28 @@
             (cc))))
 
 (hollywooMethod setScene [:Bool skipping :String name :Continuation cc]
-    (_hideCurrentScene
+    (hideCustomDialog
         (makeCC
-            (let [name (FuzzyMapTools.bestMatch scenes name)]
-                (set sceneKey name)
-                (ifLet [songKey (dictGet sceneMusic name)]
-                            // Keep the song going if it's the same as current. Otherwise, take over!
-                            (unless (= playingSceneMusic songKey)
-                                (set playingSceneMusic songKey)
-                                (stopSong skipping (makeCC null))
-                                (loopSong skipping songKey (makeCC null) (dictGet sceneMusicVolume name)))
-                    (when playingSceneMusic
-                        (set playingSceneMusic null)
-                        (stopSong skipping (makeCC null))))
-                (unless (positionsInScene.exists sceneKey)
-                    (dictSet positionsInScene sceneKey []))
-                (_showScene
-                    (dictGet scenes name)
-                    (appearanceFlag shownScenes name)
-                    .camera (dictGet scenes name)
-                    cc)))))
+            (_hideCurrentScene
+                (makeCC
+                    (let [name (FuzzyMapTools.bestMatch scenes name)]
+                        (set sceneKey name)
+                        (ifLet [songKey (dictGet sceneMusic name)]
+                                    // Keep the song going if it's the same as current. Otherwise, take over!
+                                    (unless (= playingSceneMusic songKey)
+                                        (set playingSceneMusic songKey)
+                                        (stopSong skipping (makeCC null))
+                                        (loopSong skipping songKey (makeCC null) (dictGet sceneMusicVolume name)))
+                            (when playingSceneMusic
+                                (set playingSceneMusic null)
+                                (stopSong skipping (makeCC null))))
+                        (unless (positionsInScene.exists sceneKey)
+                            (dictSet positionsInScene sceneKey []))
+                        (_showScene
+                            (dictGet scenes name)
+                            (appearanceFlag shownScenes name)
+                            .camera (dictGet scenes name)
+                            cc)))))))
     
 (hollywooMethod playSound [:Bool skipping :String name :Continuation cc &opt :Float volumeMod :Bool waitForEnd]
     (when skipping

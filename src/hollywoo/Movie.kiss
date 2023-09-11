@@ -52,8 +52,10 @@
     // This is set and unset by doPreload defined in HollywooDSL.kiss
     (prop &mut isLoading false)
 
+    (prop &mut scavenged false)
     // Reuse as many loaded assets from the previously running Movie as safely possible
     (method scavengeObjects [:Movie<Set,Actor,Sound,Song,Prop,VoiceTrack,Camera,LightSource> movie]
+        (set scavenged true)
         (let [&mut t 0
                 &mut c 0]
             (doFor =>key actor movie.actors

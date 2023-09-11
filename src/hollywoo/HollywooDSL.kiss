@@ -92,6 +92,7 @@
                                 loadSound _loadSound
                                 addSound _addSound]
                             (director.doLoading ,preloadFuncs
+                                scavenged
                                 (makeCC
                                     (print "Had to load ${loadedObjects}/${loadCalls} objects newly")
                                     (set isLoading false)

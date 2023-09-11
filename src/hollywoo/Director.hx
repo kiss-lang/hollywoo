@@ -102,6 +102,6 @@ interface Director<Set, Actor, Sound, Song, Prop, VoiceTrack, Camera, LightSourc
 
     function rollCredits(credits:Array<CreditsLine>, cc:Continuation, ?timeLimit:Float):Void;
 
-    function doLoading(_load:Array<Void->Void>, cc:Continuation):Void;
+    function doLoading(_load:Array<Void->Void>, scavenged:Bool, cc:Continuation):Void;
     function cleanup():Void;
 }

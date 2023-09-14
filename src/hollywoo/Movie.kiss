@@ -391,6 +391,7 @@
                     (case choice 
                         ("Yes"
                             (set promptedRecording true)
+                            (director.prepareForRecording)
                             (kiss_tools.OBSTools.startObs)
                             (cc))
                         (otherwise (cc))))))

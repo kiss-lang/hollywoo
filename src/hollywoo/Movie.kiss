@@ -967,8 +967,14 @@
         (director.showProp prop position (appearanceFlag shownProps name) .camera (_currentScene) cc)))
 
 (hollywooMethod removeProp [name :Continuation cc]
-    (.remove .props (_currentScene) name)
-    (director.hideProp (dictGet props name) .camera (_currentScene) cc))
+    (let [name (FuzzyMapTools.bestMatch props name)]
+        (.remove .props (_currentScene) name)
+        (director.hideProp (dictGet props name) .camera (_currentScene) cc)))
+
+(hollywooMethod clearProps [:Continuation cc]
+    (_ccForEach (collect (.keys .props (_currentScene)))
+        ->[name cc] (removeProp name cc)
+        cc))
 
 // Dialogue:
 

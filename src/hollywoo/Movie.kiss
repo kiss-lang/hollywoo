@@ -651,7 +651,17 @@
                 strobeSec
                 (* times 2))
             (when cc
-                (TimerWithPause.delay cc (* strobeSec 2 (+ 1 times)))))))
+                (TimerWithPause.delay cc (* strobeSec 2 (+ 1 times))))))
+
+    (method :Void handleCaption [:Bool skipping :String name]
+        (when showCaptions
+            (whenLet [desc (dictGet soundDescriptions name)
+                        id captionId++
+                        sound (dictGet sounds name)]
+                (director.showCaption desc id)
+                (delay skipping (min MAX_CAPTION_DURATION (director.getSoundLength sound))
+                    (makeCC
+                        (director.hideCaption id)))))))
 
 // END Parent class definitions
 
@@ -777,28 +787,20 @@
                             (appearanceFlag shownScenes name)
                             .camera (dictGet scenes name)
                             cc)))))))
-    
+
 (hollywooMethod playSound [:Bool skipping :String name :Continuation cc &opt :Float volumeMod :Bool waitForEnd]
     (when skipping
         (cc)
         (return))
     (set volumeMod (or volumeMod 1))
     (assert (<= 0 volumeMod 1))
-    (localVar &mut :Null<Int> id null)
     (let [name (FuzzyMapTools.bestMatch sounds name)]
         (localVar looping ?(dictGet loopingSoundPlays name))
         (whenLet [desc (dictGet soundDescriptions name)]
             (dialogHistory.push (Sound desc)))
-        (when showCaptions
-            (whenLet [desc (dictGet soundDescriptions name)]
-                (set id captionId++)
-                (director.showCaption desc id)))
+        (unless looping
+            (handleCaption skipping name))
         (let [sound (dictGet sounds name)]
-            (when (and showCaptions id)
-                (delay skipping (min MAX_CAPTION_DURATION (director.getSoundLength sound))
-                    (makeCC
-                        (director.hideCaption id))))
-
             (withFunctions
                 [
                     (:Void innerCC []
@@ -839,6 +841,7 @@
                         volumeMod
                         true))
             ]
+            (handleCaption skipping name)
             (dictSet loopingSoundPlays name playAgain)
             (unless skipping
                 (playAgain))))

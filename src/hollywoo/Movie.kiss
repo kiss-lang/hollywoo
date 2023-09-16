@@ -1059,14 +1059,12 @@
     (director.showBlackScreen)
     (delay skipping seconds ->:Void {(director.hideBlackScreen)(cc)}))
 
-(hollywooMethod cutToBlack [:Bool skipping :Continuation cc]
-    (unless skipping
-        (director.showBlackScreen))
+(hollywooMethod cutToBlack [:Continuation cc]
+    (director.showBlackScreen)
     (cc))
 
-(hollywooMethod endCutToBlack [:Bool skipping :Continuation cc]
-    (unless skipping
-        (director.hideBlackScreen))
+(hollywooMethod endCutToBlack [:Continuation cc]
+    (director.hideBlackScreen)
     (cc))
 
 (hollywooMethod rollCredits [:Bool skipping :String creditsTSV :Continuation cc &opt :Float timeLimit]

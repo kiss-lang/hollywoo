@@ -1,0 +1,4 @@
+(defNew [&prop :Int value])
+
+(method stringify [] "$value")
+(method parse [:String data] (new HInt (Std.parseInt data)))

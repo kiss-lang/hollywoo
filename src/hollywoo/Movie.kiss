@@ -502,6 +502,8 @@
             :String stagePositionsJson
             :String delayLengthsJson
             :String voiceLineMatchesJson
+            :String miscFloatJson
+            :String miscIntJson
         ]
         [
             :JsonMap<StagePosition> stagePositions
@@ -512,6 +514,10 @@
                 (new JsonMap delayLengthsJson (new HFloat 0.5))
             :JsonStringMap voiceLineMatches
                 (new JsonMap voiceLineMatchesJson (new JsonableString ""))
+            :JsonMap<HFloat> miscFloats
+                (new JsonMap miscFloatJson (new HFloat 0))
+            :JsonMap<HInt> miscInts
+                (new JsonMap miscIntJson (new HInt 0))
             :Map<String,String> sceneMusic (new Map)
             :Map<String,Float> sceneMusicVolume (new Map)
             &mut :String playingSceneMusic null
@@ -557,6 +563,27 @@
                                 (let [length (Std.parseFloat lengthStr)]
                                     (delayLengths.put lastDelay (new HFloat length))
                                     (cc))))
+
+                (shortcutHandler.registerItem "[d]efine [m]isc [i]nt"
+                    ->cc
+                        (director.chooseString "Which misc int?" (collect (miscInts.keys)) 
+                            ->key
+                                (director.enterString "Redefine $key from ${.value (miscInts.get key)}?" 
+                                    ->valStr
+                                        (let [v (Std.parseInt valStr)]
+                                            (miscInts.put key (new HInt v))
+                                            (cc)))))
+
+                (shortcutHandler.registerItem "[d]efine [m]isc [f]loat"
+                    ->cc
+                        (director.chooseString "Which misc float?" (collect (miscFloats.keys)) 
+                            ->key
+                                (director.enterString "Redefine $key from ${.value (miscFloats.get key)}?" 
+                                    ->valStr
+                                        (let [v (Std.parseFloat valStr)]
+                                            (miscFloats.put key (new HFloat v))
+                                            (cc)))))
+
                 (shortcutHandler.registerItem "[d]efine [p]osition"
                     ->cc
                         (director.chooseString "Which position?" (dictGet positionsInScene sceneKey)
@@ -661,7 +688,25 @@
                 (director.showCaption desc id)
                 (delay skipping (min MAX_CAPTION_DURATION (director.getSoundLength sound))
                     (makeCC
-                        (director.hideCaption id)))))))
+                        (director.hideCaption id))))))
+    
+    (method :Int miscInt [:String key &opt :Int defaultVal]
+        (if (miscInts.exists key)
+                .value (miscInts.get key)
+            {
+                (when defaultVal
+                    (miscInts.put key (new HInt defaultVal)))
+                defaultVal
+            }))
+    
+    (method :Float miscFloat [:String key &opt :Float defaultVal]
+        (if (miscFloats.exists key)
+                .value (miscFloats.get key)
+            {
+                (when defaultVal
+                    (miscFloats.put key (new HFloat defaultVal)))
+                defaultVal
+            })))
 
 // END Parent class definitions
 

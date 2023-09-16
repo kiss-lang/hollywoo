@@ -1024,10 +1024,15 @@
 (hollywooMethod normalSpeech [:Bool skipping actorName wryly text :Continuation cc]
     (processIntercut skipping actorName
         (makeCC
-            (showDialog skipping actorName (OnScreen (dictGet .characters (_currentScene) actorName)) wryly text cc))))
+            (let [character (dictGet .characters (_currentScene) actorName)
+                    actor character.actor]
+                (director.showExpression actor wryly)
+                (showDialog skipping actorName (OnScreen character) wryly text cc)))))
 
 (hollywooMethod offScreenSpeech [:Bool skipping actorName wryly text :Continuation cc]
-    (showDialog skipping actorName (OffScreen (dictGet actors actorName)) wryly text cc))
+    (let [actor (dictGet actors actorName)]
+        (director.showExpression actor wryly)
+        (showDialog skipping actorName (OffScreen actor) wryly text cc)))
 
 (hollywooMethod voiceOver [:Bool skipping actorName wryly text :Continuation cc]
     (showDialog skipping actorName (VoiceOver (dictGet actors actorName)) wryly text cc))
@@ -1036,7 +1041,10 @@
     (processIntercut skipping actorName
         (makeCC
             (showDialog skipping actorName (ifLet [charOnScreen (try (dictGet .characters (_currentScene) actorName) (catch [e] null))]
-                                            (OnScreen charOnScreen)
+                                            {
+                                                (director.showExpression charOnScreen.actor wryly)
+                                                (OnScreen charOnScreen)
+                                            }
                                         (FromPhone (dictGet actors actorName))) wryly text cc))))
 
 (hollywooMethod customSpeech [:Bool skipping type actorName wryly args text :Continuation cc]

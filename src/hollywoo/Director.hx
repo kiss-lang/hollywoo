@@ -84,6 +84,7 @@ interface Director<Set, Actor, Sound, Song, Prop, VoiceTrack, Camera, LightSourc
     function startWaitForInput(cc:Continuation):Void;
     function stopWaitForInput(cc:Continuation):Void;
 
+    function showExpression(actor:Actor, wryly:String):Void;
     function showDialog(speakerName:String, type:SpeechType<Actor>, wryly:String, dialog:String, cc:Continuation):Void;
     function hideDialog():Void;
 

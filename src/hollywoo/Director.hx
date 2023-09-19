@@ -105,6 +105,6 @@ interface Director<Set, Actor, Sound, Song, Prop, VoiceTrack, Camera, LightSourc
 
     function prepareForRecording():Void;
 
-    function doLoading(_load:Array<Void->Void>, scavenged:Bool, cc:Continuation):Void;
+    function doLoading(_load:Array<Void->Void>, scavenged:Bool, cc:Continuation, done:Continuation):Void;
     function cleanup():Void;
 }

@@ -74,9 +74,9 @@
                         (Watch AutoWithSkip)
                         (never otherwise)))
 
+                (set isLoading true)
                 (director.showTitleCard ["LOADING"]
                     (makeCC
-                        (set isLoading true)
                         (let [loadVoiceTrack _loadVoiceTrack
                                 addVoiceTrack _addVoiceTrack
                                 noVoiceTracks _noVoiceTracks
@@ -94,14 +94,13 @@
                             (director.doLoading ,preloadFuncs
                                 scavenged
                                 (makeCC
-                                    (print "Had to load ${loadedObjects}/${loadCalls} objects newly")
                                     (set isLoading false)
+                                    (print "Had to load ${loadedObjects}/${loadCalls} objects newly")
+                                    (cc))
+                                (makeCC
                                     (.start (director.shortcutHandler))
-                                    (director.hideTitleCard)
-                                    // When all loading is done, prompt to start obs recording automatically:
-                                    (#if debug
-                                            (promptToRecord cc)
-                                        (cc))))))))
+                                    (director.hideTitleCard)))))))
+
             @:keep
             (method doCleanup []
                 (director.cleanup)

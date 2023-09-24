@@ -52,6 +52,7 @@
 
     // This is set and unset by doPreload defined in HollywooDSL.kiss
     (prop &mut isLoading false)
+    (prop &mut didLoading false)
 
     (prop &mut scavenged false)
     // Reuse as many loaded assets from the previously running Movie as safely possible

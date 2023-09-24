@@ -94,6 +94,7 @@
                             (director.doLoading ,preloadFuncs
                                 scavenged
                                 (makeCC
+                                    (set didLoading true)
                                     (set isLoading false)
                                     (print "Had to load ${loadedObjects}/${loadCalls} objects newly")
                                     (cc))

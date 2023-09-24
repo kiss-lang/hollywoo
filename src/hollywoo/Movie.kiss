@@ -708,7 +708,17 @@
                 (when defaultVal
                     (miscFloats.put key (new HFloat defaultVal)))
                 defaultVal
-            })))
+            }))
+
+    (method :Float resolveDelay [:Dynamic lengthOrKey]
+        (typeCase [lengthOrKey]
+            ([:Float sec] sec)
+            ([:String key]
+                (let [lengthFloat .value (delayLengths.get key)]
+                    (set lastDelay key)
+                    (set lastDelayLength lengthFloat)
+                    lengthFloat))
+            (never otherwise))))
 
 // END Parent class definitions
 
@@ -759,14 +769,7 @@
     (when skipping
         (cc)
         (return))
-    (let [sec (typeCase [length]
-                    ([:Float sec] sec)
-                    ([:String key]
-                        (let [lengthFloat .value (delayLengths.get key)]
-                            (set lastDelay key)
-                            (set lastDelayLength lengthFloat)
-                            lengthFloat))
-                    (never otherwise))]
+    (let [sec (resolveDelay length)]
         (case delayHandling
             (Auto
                 (TimerWithPause.delay cc sec))
@@ -1035,7 +1038,7 @@
     (set intercutMap null)
     (cc))
 
-(hollywooMethod timedTitleCard [:Bool skipping time :Array<String> lines :Continuation cc]
+(hollywooMethod timedTitleCard [:Bool skipping :Dynamic time :Array<String> lines :Continuation cc]
     (when skipping
         (cc)
         (return))

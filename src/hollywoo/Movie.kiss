@@ -838,16 +838,16 @@
                             .camera (dictGet scenes name)
                             cc)))))))
 
-(hollywooMethod playSound [:Bool skipping :String name :Continuation cc &opt :Float volumeMod :Bool waitForEnd]
-    (when skipping
-        (cc)
-        (return))
+(hollywooMethod playSound [:Bool skipping :String name :Continuation cc &opt :Float volumeMod :Bool waitForEnd :Bool dontWaitForInput]
     (set volumeMod (or volumeMod 1))
     (assert (<= 0 volumeMod 1))
     (let [name (FuzzyMapTools.bestMatch sounds name)]
         (localVar looping ?(dictGet loopingSoundPlays name))
         (whenLet [desc (dictGet soundDescriptions name)]
             (dialogHistory.push (Sound desc)))
+        (when skipping
+            (cc)
+            (return))
         (unless looping
             (handleCaption skipping name))
         (let [sound (dictGet sounds name)]
@@ -856,11 +856,13 @@
                     (:Void innerCC []
                         (unless looping
                             (director.stopSound sound)
-                            (director.stopWaitForInput innerCC))
+                            (unless dontWaitForInput
+                                (director.stopWaitForInput innerCC)))
                         (cc))
                 ]
-                (unless looping
-                    (when waitForEnd (director.startWaitForInput innerCC)))
+                (unless (or looping dontWaitForInput)
+                    (when waitForEnd
+                        (director.startWaitForInput innerCC)))
                 (director.playSound sound volumeMod (when waitForEnd innerCC))))
         (unless waitForEnd
             (cc))))
@@ -868,6 +870,28 @@
 (hollywooMethod awaitPlaySound [:Bool skipping :String name :Continuation cc &opt :Float volumeMod]
     (playSound skipping name cc volumeMod true))
 
+(hollywooMethod awaitPlaySounds [:Bool skipping :Array<String> names :Continuation cc &opt :Float volumeMod]
+    (let [names (names.copy)]
+        (localVar &mut currentSound "")
+        (localVar endCC
+            (makeCC
+                (whileLet [soundKey (names.shift)]
+                    // This just adds the sounds to the history:
+                    (playSound true soundKey (makeCC null) volumeMod false true))
+                (when currentSound
+                    (stopSound skipping currentSound cc))
+                (cc)))
+        (when skipping
+            (endCC)
+            (return))
+        (director.startWaitForInput endCC)
+        (_ccForEach names
+            ->[name cc]
+                {
+                    (set currentSound name)
+                    (playSound skipping name cc volumeMod true true)
+                }
+            endCC)))
 
 (hollywooMethod stopSound [:Bool skipping :String name :Continuation cc]
     (let [name (FuzzyMapTools.bestMatch sounds name)]

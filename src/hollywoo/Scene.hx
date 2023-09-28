@@ -42,6 +42,7 @@ typedef Scene<Set, Actor, Prop, Camera> = {
     set:Set,
     characters:FuzzyMap<Character<Actor>>,
     props:FuzzyMap<StageProp<Prop>>,
+    propOrder:Array<String>,
     time:SceneTime,
     perspective:ScenePerspective,
     camera:Camera

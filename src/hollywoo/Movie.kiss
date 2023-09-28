@@ -298,6 +298,8 @@
                                             (director.cloneSet (dictGet sets setKey))
                                         characters
                                             (new FuzzyMap<Character<Actor>>)
+                                        propOrder
+                                            []
                                         props
                                             (new FuzzyMap<StageProp<Prop>>)
                                         camera
@@ -363,9 +365,10 @@
                     (makeCC
                         // show current scene props, etc.
                         (_ccForEach
-                            scene.props
-                            ->[:StageProp<Prop> p :Continuation cc]
-                                (director.showProp p.prop p.position ReAppearance .camera (_currentScene) cc)
+                            scene.propOrder
+                            ->[:String propKey :Continuation cc]
+                                (let [p (dictGet scene.props propKey)]
+                                    (director.showProp p.prop p.position ReAppearance .camera (_currentScene) cc))
                             cc))))))
 
     (prop &mut :Bool paused false)
@@ -1037,15 +1040,18 @@
     (let [name (FuzzyMapTools.bestMatch props name)
             prop (dictGet props name)
             position (resolvePosition position)]
+        (.push .propOrder (_currentScene) name)
         (dictSet .props (_currentScene) name (objectWith position prop))
         (director.showProp prop position (appearanceFlag shownProps name) .camera (_currentScene) cc)))
 
 (hollywooMethod removeProp [name :Continuation cc]
     (let [name (FuzzyMapTools.bestMatch props name)]
+        (.remove .propOrder (_currentScene) name)
         (.remove .props (_currentScene) name)
         (director.hideProp (dictGet props name) .camera (_currentScene) cc)))
 
 (hollywooMethod clearProps [:Continuation cc]
+    (set .propOrder (_currentScene) [])
     (_ccForEach (collect (.keys .props (_currentScene)))
         ->[name cc] (removeProp name cc)
         cc))

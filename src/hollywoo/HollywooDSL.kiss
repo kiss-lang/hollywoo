@@ -102,8 +102,11 @@
                                     (.start (director.shortcutHandler))
                                     (director.hideTitleCard)))))))
 
+            (prop &mut cleanupDone false)
             @:keep
             (method doCleanup []
+                (when cleanupDone (return))
+                (set cleanupDone true)
                 (director.cleanup)
                 (set lastInstructionPointer -2)
                 (set instructions null)

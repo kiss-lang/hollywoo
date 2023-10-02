@@ -766,6 +766,22 @@
             (#unless subclass @:keep (method ,nameAndType ,argList ,@body))
         }))
 
+(hollywooMethod :Void restorePlayMode [:Continuation cc]
+    (set delayHandling
+        (case hollywoo.Movie.playMode
+            (Read Manual)
+            (Watch AutoWithSkip)
+            (never otherwise)))
+    (cc))
+
+(hollywooMethod :Void overridePlayMode [:PlayMode mode :Continuation cc]
+    (set delayHandling
+        (case mode
+            (Read Manual)
+            (Watch AutoWithSkip)
+            (never otherwise)))
+    (cc))
+
 (hollywooMethod :Void hideCustomDialog [:Continuation cc]
     (when _hideCustomDialog
         (_hideCustomDialog)

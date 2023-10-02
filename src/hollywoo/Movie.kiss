@@ -729,6 +729,10 @@
     `(preload
         (_indexAssetPaths ,dir)))
 
+(defMacro mode [mode &body body]
+    `(case Movie.playMode
+        (,mode ,@body)
+        (otherwise (cc))))
 
 // Some real magic happens here. This macro defines a method, AND a reader macro
 // for calling it with skipping and cc passed automatically if cc is an argument.
@@ -799,6 +803,9 @@
                         (cc)
                     }))
             (otherwise (throw "Unsupported delay type $delayHandling")))))
+
+(hollywooMethod :Void watchModeDelay [:Bool skipping :Dynamic length :Continuation cc]
+    (mode Watch (delay skipping length cc)))
 
 (hollywooMethod setSceneSong [:String scene :String songKey &opt :Float volumeMod :Continuation cc]
     (dictSet sceneMusic scene songKey)

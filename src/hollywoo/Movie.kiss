@@ -456,10 +456,11 @@
                                                 (case source
                                                     ("pixabay.com" null)
                                                     ("unsplash.com" null)
+                                                    ("openclipart.org" null)
                                                     (otherwise
                                                         (#when debug
                                                             (unless (sys.FileSystem.exists "${noExt}.LICENSE.txt")
-                                                                (print "Warning! License file may be required for redistributing $file")))))))
+                                                                (print "Warning! License file may be required for redistributing $file from $source")))))))
                                         (true
                                             (doFor [ending extension] (intersect overrideEndings overrideExtensions)
                                                 (let [possibleOverride "${noExt}${ending}.${extension}"]

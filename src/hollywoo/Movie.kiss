@@ -447,14 +447,27 @@
                                     ]
                                     overridePath file]
                                 {
-                                    (unless (= ext "tsv")
-                                        (doFor [ending extension] (intersect overrideEndings overrideExtensions)
-                                            (let [possibleOverride "${noExt}${ending}.${extension}"]
-                                                (when (sys.FileSystem.exists possibleOverride)
-                                                    (#when debug
-                                                        (print "$file overridden by $possibleOverride"))
-                                                    (set overridePath possibleOverride)
-                                                    (break)))))
+                                    (cond 
+                                        ((= ext "tsv")
+                                            // If an asset's source is neither pixabay or unsplash (public domain),
+                                            // make some noise if you forgot to include its license in a file:
+                                            (let [content (sys.io.File.getContent file)
+                                                    source (.shift (content.split "\t"))]
+                                                (case source
+                                                    ("pixabay.com" null)
+                                                    ("unsplash.com" null)
+                                                    (otherwise
+                                                        (#when debug
+                                                            (unless (sys.FileSystem.exists "${noExt}.LICENSE.txt")
+                                                                (print "Warning! License file may be required for redistributing $file")))))))
+                                        (true
+                                            (doFor [ending extension] (intersect overrideEndings overrideExtensions)
+                                                (let [possibleOverride "${noExt}${ending}.${extension}"]
+                                                    (when (sys.FileSystem.exists possibleOverride)
+                                                        (#when debug
+                                                            (print "$file overridden by $possibleOverride"))
+                                                        (set overridePath possibleOverride)
+                                                        (break))))))
                                     (doFor dir dirs
                                         (dictSet (dictGet assetPaths dir) basename overridePath))
                                 }

@@ -487,7 +487,7 @@
                 (if (dirMap.existsExactly tsv)
                         (let [tsvContent (sys.io.File.getContent (dictGet dirMap tsv))]
                             (loadedCredits.push (tsvContent.split "\t")))
-                    (print "Warning: no credit tsv file for ${directory}/${filename}"))
+                    (#when debug (print "Warning: no credit tsv file for ${directory}/${filename}")))
                 (dictGet dirMap basename))))
 
     (function choosePlayMode [:Director<Dynamic,Dynamic,Dynamic,Dynamic,Dynamic,Dynamic,Dynamic,Dynamic> director :Void->Void cc]

@@ -457,6 +457,7 @@
                                                     ("pixabay.com" null)
                                                     ("unsplash.com" null)
                                                     ("openclipart.org" null)
+                                                    ("pixnio.com" null)
                                                     (otherwise
                                                         (#when debug
                                                             (unless (sys.FileSystem.exists "${noExt}.LICENSE.txt")

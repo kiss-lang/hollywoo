@@ -452,7 +452,7 @@
                                             // If an asset's source is neither pixabay or unsplash (public domain),
                                             // make some noise if you forgot to include its license in a file:
                                             (let [content (sys.io.File.getContent file)
-                                                    source (.shift (content.split "\t"))]
+                                                    source (.pop (content.split "\t"))]
                                                 (case source
                                                     ("pixabay.com" null)
                                                     ("unsplash.com" null)

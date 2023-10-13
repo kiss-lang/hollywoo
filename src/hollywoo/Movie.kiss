@@ -452,7 +452,8 @@
                                             // If an asset's source is neither pixabay or unsplash (public domain),
                                             // make some noise if you forgot to include its license in a file:
                                             (let [content (sys.io.File.getContent file)
-                                                    source (.pop (content.split "\t"))]
+                                                    source (.shift (content.split "\t"))
+                                                    sourceUrl (.pop (content.split "\t"))]
                                                 (case source
                                                     ("pixabay.com" null)
                                                     ("unsplash.com" null)
@@ -461,7 +462,7 @@
                                                     (otherwise
                                                         (#when debug
                                                             (unless (sys.FileSystem.exists "${noExt}.LICENSE.txt")
-                                                                (print "Warning! License file may be required for redistributing $file from $source")))))))
+                                                                (print "Warning! License file may be required for redistributing $file from $sourceUrl")))))))
                                         (true
                                             (doFor [ending extension] (intersect overrideEndings overrideExtensions)
                                                 (let [possibleOverride "${noExt}${ending}.${extension}"]

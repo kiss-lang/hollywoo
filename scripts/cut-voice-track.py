@@ -28,7 +28,7 @@ def save():
     new_wav = new_wav_file()
     cutter.save_and_quit(new_wav)
 
-def process_chunk(audio_guess, possible_sections):
+def process_chunk(audio_guess, possible_sections, signal_back):
     num_takes = len(possible_sections)
     if num_takes > 36:
         print('\033[31m' + audio_guess + '\033[0m')
@@ -83,7 +83,8 @@ def process_chunk(audio_guess, possible_sections):
             cutter.repeat_search()
             break
         elif choice == 'q':
-            save()
+            signal_back()
+            return
         elif choice == 'u':
             choice = getch()
             choices = takes.split('/')
@@ -119,4 +120,4 @@ def process_chunk(audio_guess, possible_sections):
         else:
             print(f'{choice} is not a valid option')
 
-cutter.process_audio(process_chunk, new_wav_file())
+cutter.process_audio_v2(process_chunk, new_wav_file())

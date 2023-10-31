@@ -1,5 +1,6 @@
 from imports import *
 import numpy as np
+from collections import deque
 
 def arg(num, usage, default=None):
     val = ''
@@ -103,6 +104,71 @@ class AudioCutter:
                     continue
             
             chunk_processor(audio_tag, chunk_info)
+        
+        if self.searching_for != None:
+            print(f"{self.searching_for} not found")
+        
+        self.save_and_quit(new_wav_file)
+
+    # chunk_processor_v2(audio_tag, chunk_info, signal_back)
+    def process_audio_v2(self, chunk_processor, new_wav_file):
+        chunks = [(audio_tag, chunk_info) for (audio_tag, chunk_info) in self.json_info.items()]
+        index = 0
+        while index < len(chunks):
+            # When the AudioCutter is searching for a phrase, skip all audio tags that don't match
+            if self.searching_for != None:
+                (audio_tag, chunk_info) = chunks[index]
+                if self.searching_for in audio_tag:
+                    self.searching_for = None
+                else:
+                    index += 1
+                    continue
+            
+            print (index)
+            for (slice_index, (audio_tag, chunk_info)) in enumerate(chunks[index:index+10]):
+                print(f"{slice_index} - {audio_tag}")
+            
+            print()
+            print("v - next page")
+            print("p - previous page")
+            print("g - go to beginning")
+            print("f - search")
+            print("n - repeat search")
+            print("q - quit")
+
+            choice = getch()
+            
+            if choice == "v":
+                index += 10
+            elif choice == "p":
+                index -= 10
+            elif choice == "g":
+                index = 0
+            elif choice == "f":
+                self.search()
+            elif choice == "n":
+                index += 1
+                self.repeat_search()
+            elif choice == "q":
+                break
+            else:
+                try:
+                    slice_index = int(choice)
+                    remaining_chunks = deque(chunks[index+slice_index:])
+                    index += slice_index
+                    
+                    self.back_signaled = False
+                    def signal_back():
+                        self.back_signaled = True
+                    
+                    while len(remaining_chunks) > 0 and not (self.back_signaled or self.searching_for):
+                        (audio_tag, chunk_info) = remaining_chunks.popleft()
+                        chunk_processor(audio_tag, chunk_info, signal_back)
+                        index += 1
+
+                except ValueError:
+                    continue
+
         
         if self.searching_for != None:
             print(f"{self.searching_for} not found")

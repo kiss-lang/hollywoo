@@ -66,6 +66,7 @@ class AudioCutter:
         self.new_json_info[tag] = info
 
     def add_silence(self, seconds):
+        self.current_sec += seconds
         nframes = int(seconds * self.rate)
         shape = self.new_data.shape
         shape = (nframes,) + shape[1:]

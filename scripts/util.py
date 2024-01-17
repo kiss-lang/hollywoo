@@ -167,9 +167,9 @@ class AudioCutter:
                         chunk_processor(audio_tag, chunk_info, signal_back)
                         index += 1
 
-                except ValueError:
-                    continue
-
+                except ValueError as e:
+                    print(f'warning! unhandled ValueError {e}')
+                    
         
         if self.searching_for != None:
             print(f"{self.searching_for} not found")

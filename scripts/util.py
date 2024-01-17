@@ -36,6 +36,10 @@ class AudioCutter:
         self.nchannels, self.sampwidth, self.framerate, self.nframes, self.comptype, self.compname = self.wav.getparams()
         self.rate, self.data = wavfile.read(wav_file)
         
+        if self.nchannels != 2:
+            print('AudioCutter is incompatible with mono wav files')
+            exit(1)
+        
         # Accumulate new sound data cut from the original, along with new related json data
         self.new_data = self.data[0:1]
         self.new_json_info = {}

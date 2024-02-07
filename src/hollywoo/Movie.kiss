@@ -33,12 +33,12 @@
     (prop :FuzzyMap<FuzzyMap<VoiceLine>> voiceLines (new FuzzyMap<FuzzyMap<VoiceLine>>))
     (prop :Map<String,Bool> dirtyActors (new Map))
     (prop :Map<String,Bool> dirtyProps (new Map))
-    
+
     // Used to give unique, persistent IDs to voice tracks
     (prop :Map<String,Int> voiceTracksPerActor (new Map))
 
     (prop &mut :DelayHandling delayHandling AutoWithSkip)
-    
+
     (prop &mut :String lastDelay "")
     (prop &mut :Float lastDelayLength 0)
 
@@ -112,13 +112,13 @@
                     (setScene skipping sceneForActor cc)
                     (return))))
         (cc))
-    
+
     (prop :Map<String,Bool> _silentCustomDialogTypes (new Map))
     (savedVar :Bool playVoiceTracksForSilentDialog false)
     (method registerCustomDialogTypeHandler [:String key :CustomDialogTypeHandler<Actor> handler &opt :Bool isSilent]
         (_customDialogTypeHandlers.set key handler)
         (when ?isSilent (dictSet _silentCustomDialogTypes key true)))
-    
+
     (prop &mut :Void->Void _hideCustomDialog null)
     (var DELAY_BETWEEN_VOICE_TRACKS 0.1)
     (method :Void showDialog [:Bool skipping actorName dialogType wryly text cc]
@@ -173,7 +173,7 @@
                                                 (+= (dictGet altIdx "$actorName $text") 1)
                                                 (set customCC ->:Void {})
                                                 (director.playVoiceTrack (dictGet voiceTracks trackKey) 1 start end cc))))
-                                    
+
                                     (set skipCC ->:Void {(director.stopVoiceTrack (dictGet voiceTracks trackKey)) (cc)}))
                                 ((objectWith trackKey start end)
                                     (director.playVoiceTrack (dictGet voiceTracks trackKey) 1 start end cc)
@@ -253,9 +253,16 @@
                 (+= loadedObjects 1)
                 (_addProp name (director.loadProp path)))))
 
+    (prop :Array<Array<Dynamic>> propNames [])
+    (method :String getPropName [:Prop prop]
+        (doFor [_prop name] propNames
+            (when (= prop _prop) (return name)))
+        (throw "Couldn't get name of prop $prop"))
+
     (method _addProp [name :Prop prop]
         (assert isLoading)
-        (dictSet props name prop))
+        (dictSet props name prop)
+        (propNames.push (dynamicArray prop name)))
 
     (method _loadSong [name :String path]
         (+= loadCalls 1)
@@ -275,9 +282,17 @@
                 (+= loadedObjects 1)
                 (_addActor name (director.loadActor path)))))
 
+
+    (prop :Array<Array<Dynamic>> actorNames [])
+    (method :String getActorName [:Actor actor]
+        (doFor [_actor name] actorNames
+            (when (= actor _actor) (return name)))
+        (throw "Couldn't get name of actor $actor"))
+
     (method _addActor [name :Actor actor]
         (assert isLoading)
-        (dictSet actors name actor))
+        (dictSet actors name actor)
+        (actorNames.push (dynamicArray actor name)))
 
     (method _loadSet [name :String path]
         (+= loadCalls 1)
@@ -298,6 +313,8 @@
                                             (director.cloneSet (dictGet sets setKey))
                                         characters
                                             (new FuzzyMap<Character<Actor>>)
+                                        actorPositionKeys (new FuzzyMap<String>)
+                                        propPositionKeys (new FuzzyMap<String>)
                                         propOrder
                                             []
                                         props
@@ -338,8 +355,8 @@
                     (director.hideLighting)
                     (director.hideSet currentScene.set currentScene.camera
                         (makeCC
-                            // hide current scene characters 
-                            (_ccForEach 
+                            // hide current scene characters
+                            (_ccForEach
                                 currentScene.characters
                                 ->[:Character<Actor> c :Continuation cc]
                                     (director.hideCharacter c currentScene.camera cc)
@@ -351,14 +368,14 @@
                                             (director.hideProp p.prop currentScene.camera cc)
                                         cc))))))
             (cc)))
-    
+
     (method _showScene [:Scene<Set,Actor,Prop,Camera> scene :Appearance appearance :Camera camera :Continuation cc]
         (director.showLighting scene.time .elements (lightSources.get (FuzzyMapTools.bestMatch scenes sceneKey)) camera)
         // Show current scene background
         (director.showSet scene.set scene.time scene.perspective appearance camera
             (makeCC
-                // Show current scene characters 
-                (_ccForEach 
+                // Show current scene characters
+                (_ccForEach
                     (object iterator ->(scene.characters.keys))
                     ->[:String key :Continuation cc]
                         (director.showCharacter (dictGet scene.characters key) (appearanceFlag shownCharacters key) camera cc)
@@ -392,8 +409,8 @@
             (director.chooseString
                 "Start recording?"
                 ["Yes" "No"]
-                ->:Void choice 
-                    (case choice 
+                ->:Void choice
+                    (case choice
                         ("Yes"
                             (set promptedRecording true)
                             (director.prepareForRecording)
@@ -409,12 +426,17 @@
 
 
     (prop :Map<String,Array<String>> positionsInScene (new Map))
-    (method resolvePosition [:Dynamic position]
+    (method resolvePosition [:Dynamic position :PositionHolder holder]
         (typeCase [position]
             ([:String positionKey]
                 (let [positionsInThisScene (dictGet positionsInScene sceneKey)]
                     (unless (positionsInThisScene.contains positionKey)
                         (positionsInThisScene.push positionKey)))
+                // Store a record in the scene of which actors/props are using which position keys:
+                (case holder
+                    ((Actor actor) (dictSet .actorPositionKeys (_currentScene) actor positionKey))
+                    ((Prop prop) (dictSet .propPositionKeys (_currentScene) prop positionKey))
+                    (never otherwise))
                 (stagePositions.get positionKey))
             ([:StagePosition position]
                 position)
@@ -447,7 +469,7 @@
                                     ]
                                     overridePath file]
                                 {
-                                    (cond 
+                                    (cond
                                         ((= ext "tsv")
                                             // If an asset's source is neither pixabay or unsplash (public domain),
                                             // make some noise if you forgot to include its license in a file:
@@ -575,11 +597,11 @@
                                 (dialogHistory.slice (- dialogHistory.length MAX_DIALOG_HISTORY))
                             dialogHistory) cc)
                 })
-            
+
             (#when debug
                 (shortcutHandler.registerItem "[d]efine [d]elay"
                     ->cc
-                        (director.enterString "Redefine $lastDelay from $lastDelayLength sec?" 
+                        (director.enterString "Redefine $lastDelay from $lastDelayLength sec?"
                             ->lengthStr
                                 (let [length (Std.parseFloat lengthStr)]
                                     (delayLengths.put lastDelay (new HFloat length))
@@ -587,9 +609,9 @@
 
                 (shortcutHandler.registerItem "[d]efine [m]isc [i]nt"
                     ->cc
-                        (director.chooseString "Which misc int?" (collect (miscInts.keys)) 
+                        (director.chooseString "Which misc int?" (collect (miscInts.keys))
                             ->key
-                                (director.enterString "Redefine $key from ${.value (miscInts.get key)}?" 
+                                (director.enterString "Redefine $key from ${.value (miscInts.get key)}?"
                                     ->valStr
                                         (let [v (Std.parseInt valStr)]
                                             (miscInts.put key (new HInt v))
@@ -597,9 +619,9 @@
 
                 (shortcutHandler.registerItem "[d]efine [m]isc [f]loat"
                     ->cc
-                        (director.chooseString "Which misc float?" (collect (miscFloats.keys)) 
+                        (director.chooseString "Which misc float?" (collect (miscFloats.keys))
                             ->key
-                                (director.enterString "Redefine $key from ${.value (miscFloats.get key)}?" 
+                                (director.enterString "Redefine $key from ${.value (miscFloats.get key)}?"
                                     ->valStr
                                         (let [v (Std.parseFloat valStr)]
                                             (miscFloats.put key (new HFloat v))
@@ -613,7 +635,33 @@
                                     .camera (_currentScene)
                                     ->[:StagePosition position] {
                                         (stagePositions.put positionKey position)
-                                        (cc)
+                                        // Reposition actors and props on the fly
+                                        (let [scene (_currentScene)
+                                                characterIterator (scene.characters.keys)
+                                                propOrder (scene.propOrder.copy)]
+                                            (withFunctions
+                                                [
+                                                    (nextProp []
+                                                        (ifLet [key (propOrder.shift)
+                                                                    prop (dictGet scene.props key)]
+                                                                (director.hideProp prop.prop scene.camera
+                                                                    (makeCC
+                                                                        (when (scene.propPositionKeys.exists key)
+                                                                            (set prop.position (stagePositions.get (dictGet scene.propPositionKeys key))))
+                                                                        (director.showProp prop.prop prop.position ReAppearance scene.camera nextProp)))
+                                                            (cc)))
+                                                    (nextCharacter []
+                                                        (if (characterIterator.hasNext)
+                                                                (let [key (characterIterator.next)
+                                                                        character (dictGet scene.characters key)]
+                                                                    (director.hideCharacter character scene.camera
+                                                                        (makeCC
+                                                                            (when (scene.actorPositionKeys.exists key)
+                                                                                (set character.stagePosition (stagePositions.get (dictGet scene.actorPositionKeys key))))
+                                                                            (director.showCharacter character ReAppearance scene.camera nextCharacter))))
+                                                            (nextProp)))
+                                                ]
+                                                (nextCharacter)))
                                     }
                                     (stagePositions.get positionKey))))
                 (shortcutHandler.registerItem "[d]efine [l]ight source"
@@ -657,7 +705,7 @@
                                             (resume)
                                             ((dictGet runners label))
                                         }))))))
-        
+
     @:keep
     (method :Void _strobe [:Bool skipping :Bool prop :String actorOrPropKey :Float strobeSec :Int times &opt :Continuation cc]
         (when skipping
@@ -710,7 +758,7 @@
                 (delay skipping (min MAX_CAPTION_DURATION (director.getSoundLength sound))
                     (makeCC
                         (director.hideCaption id))))))
-    
+
     (method :Int miscInt [:String key &opt :Int defaultVal]
         (if (miscInts.exists key)
                 .value (miscInts.get key)
@@ -719,7 +767,7 @@
                     (miscInts.put key (new HInt defaultVal)))
                 defaultVal
             }))
-    
+
     (method :Float miscFloat [:String key &opt :Float defaultVal]
         (if (miscFloats.exists key)
                 .value (miscFloats.get key)
@@ -820,7 +868,7 @@
                                     (cc)
                                 }
                                 sec)]
-                    (director.startWaitForInput 
+                    (director.startWaitForInput
                         ->{
                             (director.stopWaitForInput cc)
                             (TimerWithPause.stop autoDelay)
@@ -847,7 +895,7 @@
 (hollywooMethod setCurrentSceneSong [:Bool skipping :String songKey :Continuation cc &opt :Float volumeMod]
     (dictSet sceneMusic sceneKey songKey)
     (dictSet sceneMusicVolume sceneKey volumeMod)
-    (cond 
+    (cond
         ((= playingSceneMusic songKey)
             (changeSongVolume skipping volumeMod cc))
         (true
@@ -986,7 +1034,7 @@
         (cc)
         (return))
     (playSong skipping name cc volumeMod false true))
-    
+
 (hollywooMethod loopSong [:Bool skipping :String name :Continuation cc &opt :Float volumeMod]
     (playSong skipping name cc volumeMod true false))
 
@@ -1010,7 +1058,7 @@
 
 (hollywooMethod addCharacter [actorName :Dynamic position :StageFacing facing :Continuation cc]
     (let [actorName (FuzzyMapTools.bestMatch actors actorName)
-            position (resolvePosition position)
+            position (resolvePosition position (Actor actorName))
             character (object stagePosition position stageFacing facing actor (dictGet actors actorName))]
         (autoZProcess position
             (makeCC
@@ -1019,7 +1067,7 @@
                     character
                     (appearanceFlag shownCharacters actorName)
                     .camera (_currentScene)
-                    cc))))) 
+                    cc)))))
 
 (hollywooMethod removeCharacter [actorName :Continuation cc]
     (let [c (dictGet .characters (_currentScene) actorName)]
@@ -1040,7 +1088,7 @@
 
 // INSTANTLY swap characters
 (hollywooMethod swapCharacters [actorNameA actorNameB :Continuation cc]
-    // remove both, then re-add both, so they don't trigger 
+    // remove both, then re-add both, so they don't trigger
     // cascading auto z adjustments on top of each other:
     (let [a (dictGet .characters (_currentScene) actorNameA)
             asp a.stagePosition
@@ -1078,7 +1126,7 @@
 (hollywooMethod addProp [name :Dynamic position :Continuation cc]
     (let [name (FuzzyMapTools.bestMatch props name)
             prop (dictGet props name)
-            position (resolvePosition position)]
+            position (resolvePosition position (Prop name))]
         (.push .propOrder (_currentScene) name)
         (dictSet .props (_currentScene) name (objectWith position prop))
         (director.showProp prop position (appearanceFlag shownProps name) .camera (_currentScene) cc)))
@@ -1194,7 +1242,7 @@
         (let [creditsData
                     (for line (.split .content (Stream.fromString creditsTSV) "\n") (line.split "\t"))
                 headings
-                    []    
+                    []
                 edgeCaseCredits
                     (new Map<String,String>)
                 headingIndices
@@ -1213,7 +1261,7 @@
                         (dictSet headingIndices (substr heading 0 -1) idx)
                         (dictSet headingData (substr heading 0 -1) []))
                     (otherwise)))
-            
+
             // Sort loadedCredits by headings and check for missing headings
             (doFor data loadedCredits
                 (case data
@@ -1240,7 +1288,7 @@
                                         ((or [heading] [heading _])
                                             (hdPush ["" credit]))
                                         (never otherwise)))
-                                
+
                             (throw "no heading $heading to place credit $data")))
                     (otherwise
                         (throw "unsupported credit data $data"))))
@@ -1265,7 +1313,7 @@
                         (ThreeColumn col1 col2 col3))
                     (otherwise
                         (throw "unsupported credits line $data")))))
-        
+
         cc
         timeLimit))
 
@@ -1275,7 +1323,7 @@
         (return))
     (playSong skipping songKey (makeCC null) volumeMod)
     (rollCredits
-        skipping 
+        skipping
         creditsTSV
         (makeCC
             (stopSong skipping cc))

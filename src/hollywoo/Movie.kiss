@@ -257,7 +257,7 @@
     (method :String getPropName [:Prop prop]
         (doFor [_prop name] propNames
             (when (= prop _prop) (return name)))
-        (throw "Couldn't get name of prop $prop"))
+        (throw "Couldn't get name of prop $prop in $propNames"))
 
     (method _addProp [name :Prop prop]
         (assert isLoading)
@@ -287,7 +287,7 @@
     (method :String getActorName [:Actor actor]
         (doFor [_actor name] actorNames
             (when (= actor _actor) (return name)))
-        (throw "Couldn't get name of actor $actor"))
+        (throw "Couldn't get name of actor $actor in $actorNames"))
 
     (method _addActor [name :Actor actor]
         (assert isLoading)

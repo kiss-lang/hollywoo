@@ -572,6 +572,7 @@
             :Map<String,String> sceneMusic (new Map)
             :Map<String,Float> sceneMusicVolume (new Map)
             &mut :String playingSceneMusic null
+            &mut :Continuation->Void lastCommand ->:Void cc (cc)
         ]
         (super)
         (set director.movie this)
@@ -607,131 +608,149 @@
                 })
 
             (#when debug
-                (shortcutHandler.registerItem "[d]efine [d]elay"
+                (shortcutHandler.registerItem "[.] repeat last command"
                     ->cc
-                        (director.enterString "Redefine $lastDelay from $lastDelayLength sec?"
-                            ->lengthStr
-                                (let [length (Std.parseFloat lengthStr)]
-                                    (delayLengths.put lastDelay (new HFloat length))
-                                    (cc))))
+                        (lastCommand cc))
+
+                (localFunction redefineLastDelay [cc]
+                    (set lastCommand redefineLastDelay)
+                    (director.enterString "Redefine $lastDelay from $lastDelayLength sec?"
+                        ->lengthStr
+                            (let [length (Std.parseFloat lengthStr)]
+                                (delayLengths.put lastDelay (new HFloat length))
+                                (cc))))
+                (shortcutHandler.registerItem "[d]efine [d]elay" redefineLastDelay)
 
                 (shortcutHandler.registerItem "[d]efine [m]isc [i]nt"
                     ->cc
                         (director.chooseString "Which misc int?" (collect (miscInts.keys))
                             ->key
-                                (director.enterString "Redefine $key from ${.value (miscInts.get key)}?"
-                                    ->valStr
-                                        (let [v (Std.parseInt valStr)]
-                                            (miscInts.put key (new HInt v))
-                                            (cc)))))
+                                (withFunctions
+                                    [
+                                        (defineMiscInt [cc]
+                                            (director.enterString "Redefine $key from ${.value (miscInts.get key)}?"
+                                                ->valStr
+                                                    (let [v (Std.parseInt valStr)]
+                                                        (miscInts.put key (new HInt v))
+                                                        (cc))))
+                                    ]
+                                    (set lastCommand defineMiscInt)
+                                    (defineMiscInt cc))))
 
                 (shortcutHandler.registerItem "[d]efine [m]isc [f]loat"
                     ->cc
                         (director.chooseString "Which misc float?" (collect (miscFloats.keys))
                             ->key
-                                (director.enterString "Redefine $key from ${.value (miscFloats.get key)}?"
-                                    ->valStr
-                                        (let [v (Std.parseFloat valStr)]
-                                            (miscFloats.put key (new HFloat v))
-                                            (cc)))))
+                                (withFunctions
+                                    [
+                                        (defineMiscFloat [cc]
+                                            (director.enterString "Redefine $key from ${.value (miscFloats.get key)}?"
+                                                ->valStr
+                                                    (let [v (Std.parseFloat valStr)]
+                                                        (miscFloats.put key (new HFloat v))
+                                                        (cc))))
+                                    ]
+                                    (set lastCommand defineMiscFloat)
+                                    (defineMiscFloat cc))))
 
                 (shortcutHandler.registerItem "[d]efine [p]osition"
                     ->cc
                         (director.chooseString "Which position?" (dictGet positionsInScene sceneKey)
                             ->positionKey
-                                (director.defineStagePosition
-                                    .camera (_currentScene)
-                                    ->[:StagePosition position] {
-                                        // store it relative:
-                                        (stagePositions.put positionKey
-                                            (ifLet [relativeKey .value (positionRelativity.get positionKey)
-                                                        anchorPos (resolvePosition relativeKey null)]
-                                                    (new StagePosition (- position.x anchorPos.x) (- position.y anchorPos.y) (- position.z anchorPos.z))
-                                                position))
-                                        // Reposition actors and props on the fly
-                                        (let [scene (_currentScene)
-                                                characterIterator (scene.characters.keys)
-                                                propOrder (scene.propOrder.copy)]
-                                            (withFunctions
-                                                [
-                                                    (nextProp []
-                                                        (ifLet [key (propOrder.shift)
-                                                                    prop (dictGet scene.props key)]
-                                                                (director.hideProp prop.prop scene.camera
-                                                                    (makeCC
-                                                                        (when (scene.propPositionKeys.exists key)
-                                                                            (set prop.position (resolvePosition (dictGet scene.propPositionKeys key) null)))
-                                                                        (director.showProp prop.prop prop.position ReAppearance scene.camera nextProp)))
-                                                            (cc)))
-                                                    (nextCharacter []
-                                                        (if (characterIterator.hasNext)
-                                                                (let [key (characterIterator.next)
-                                                                        character (dictGet scene.characters key)]
-                                                                    (director.hideCharacter character scene.camera
-                                                                        (makeCC
-                                                                            (when (scene.actorPositionKeys.exists key)
-                                                                                (set character.stagePosition (resolvePosition (dictGet scene.actorPositionKeys key) null)))
-                                                                            (director.showCharacter character ReAppearance scene.camera nextCharacter))))
-                                                            (nextProp)))
-                                                ]
-                                                (nextCharacter)))
-                                    }
-                                    (resolvePosition positionKey null))))
+                                (withFunctions
+                                    [
+                                        (defineStagePosition [cc]
+                                            (director.defineStagePosition
+                                                .camera (_currentScene)
+                                                ->[:StagePosition position] {
+                                                    // store it relative:
+                                                    (stagePositions.put positionKey
+                                                        (ifLet [relativeKey .value (positionRelativity.get positionKey)
+                                                                    anchorPos (resolvePosition relativeKey null)]
+                                                                (new StagePosition (- position.x anchorPos.x) (- position.y anchorPos.y) (- position.z anchorPos.z))
+                                                            position))
+                                                    // Reposition actors and props on the fly
+                                                    (let [scene (_currentScene)
+                                                            characterIterator (scene.characters.keys)
+                                                            propOrder (scene.propOrder.copy)]
+                                                        (withFunctions
+                                                            [
+                                                                (nextProp []
+                                                                    (ifLet [key (propOrder.shift)
+                                                                                prop (dictGet scene.props key)]
+                                                                            (director.hideProp prop.prop scene.camera
+                                                                                (makeCC
+                                                                                    (when (scene.propPositionKeys.exists key)
+                                                                                        (set prop.position (resolvePosition (dictGet scene.propPositionKeys key) null)))
+                                                                                    (director.showProp prop.prop prop.position ReAppearance scene.camera nextProp)))
+                                                                        (cc)))
+                                                                (nextCharacter []
+                                                                    (if (characterIterator.hasNext)
+                                                                            (let [key (characterIterator.next)
+                                                                                    character (dictGet scene.characters key)]
+                                                                                (director.hideCharacter character scene.camera
+                                                                                    (makeCC
+                                                                                        (when (scene.actorPositionKeys.exists key)
+                                                                                            (set character.stagePosition (resolvePosition (dictGet scene.actorPositionKeys key) null)))
+                                                                                        (director.showCharacter character ReAppearance scene.camera nextCharacter))))
+                                                                        (nextProp)))
+                                                            ]
+                                                            (nextCharacter)))
+                                                }
+                                                (resolvePosition positionKey null)))
+                                    ]
+                                    (set lastCommand defineStagePosition)
+                                    (defineStagePosition cc))))
+
                 (shortcutHandler.registerItem "[d]efine [r]elativity of position"
                     ->cc
                         (director.chooseString "Which position?" (dictGet positionsInScene sceneKey)
                             ->positionKey
-                                (director.chooseString "Make relative to which position?"
-                                                        (let [keys (.copy (dictGet positionsInScene sceneKey))]
-                                                            (keys.remove positionKey)
-                                                            keys)
-                                                        ->relativeKey
-                                                            (let [pos (resolvePosition positionKey null)
-                                                                    anchorPos (resolvePosition relativeKey null)]
-                                                                (positionRelativity.put positionKey (new JsonableString relativeKey))
-                                                                (stagePositions.put positionKey
-                                                                    (new StagePosition (- pos.x anchorPos.x) (- pos.y anchorPos.y) (- pos.z anchorPos.z)))))))
-                (shortcutHandler.registerItem "[d]efine [l]ight source"
-                    ->cc
-                        (director.defineLightSource
-                            ->[:LightSource source] {
-                                (let [arr (lightSources.get sceneKey)]
-                                    (arr.elements.push source)
+                                (withFunctions
+                                    [
+                                        (defineRelativity [cc]
+                                            (director.chooseString "Make relative to which position?"
+                                                                    (let [keys (.copy (dictGet positionsInScene sceneKey))]
+                                                                        (keys.remove positionKey)
+                                                                        keys)
+                                                                    ->relativeKey
+                                                                        (let [pos (resolvePosition positionKey null)
+                                                                                anchorPos (resolvePosition relativeKey null)]
+                                                                            (positionRelativity.put positionKey (new JsonableString relativeKey))
+                                                                            (stagePositions.put positionKey
+                                                                                (new StagePosition (- pos.x anchorPos.x) (- pos.y anchorPos.y) (- pos.z anchorPos.z))))))
+                                    ]
+                                    (set lastCommand defineRelativity)
+                                    (defineRelativity cc))))
+
+                (localFunction defineLightSource [cc]
+                    (set lastCommand defineLightSource)
+                    (director.defineLightSource
+                        ->[:LightSource source] {
+                            (let [arr (lightSources.get sceneKey)]
+                                (arr.elements.push source)
+                                (lightSources.put sceneKey arr)
+                                (director.hideLighting)
+                                (director.showLighting .time (_currentScene) arr.elements .camera (_currentScene))
+                                (cc))
+                        }))
+                (shortcutHandler.registerItem "[d]efine [l]ight source" defineLightSource)
+
+                (localFunction removeLightSource [cc]
+                    (set lastCommand removeLightSource)
+                    (let [arr (lightSources.get sceneKey)
+                            stringArr (for ls arr (ls.stringify))
+                            stringMap (for [key ls] (zipThrow stringArr arr) =>key ls)]
+                        (director.chooseString "Remove which light source?" stringArr
+                            ->choice
+                                (let [ls (dictGet stringMap choice)]
+                                    (arr.elements.remove ls)
                                     (lightSources.put sceneKey arr)
                                     (director.hideLighting)
                                     (director.showLighting .time (_currentScene) arr.elements .camera (_currentScene))
-                                    (cc))
-                            }))
-                (shortcutHandler.registerItem "[r]emove [l]ight source"
-                    ->cc
-                        (let [arr (lightSources.get sceneKey)
-                                stringArr (for ls arr (ls.stringify))
-                                stringMap (for [key ls] (zipThrow stringArr arr) =>key ls)]
-                            (director.chooseString "Remove which light source?" stringArr
-                                ->choice
-                                    (let [ls (dictGet stringMap choice)]
-                                        (arr.elements.remove ls)
-                                        (lightSources.put sceneKey arr)
-                                        (director.hideLighting)
-                                        (director.showLighting .time (_currentScene) arr.elements .camera (_currentScene))
-                                        (cc)))))
-
-                // TODO
-                **(shortcutHandler.registerItem "[n]ext label"
-                    ->cc
-                        (skipToNextLabel))
-
-                // TODO
-                **(shortcutHandler.registerItem "skip to [l]abel"
-                    ->cc
-                        (let [runners (labelRunners)]
-                            (director.chooseString
-                                "Skip to scene?"
-                                (sort (collect (runners.keys)))
-                                ->label {
-                                            (resume)
-                                            ((dictGet runners label))
-                                        }))))))
+                                    (cc)))))
+                (shortcutHandler.registerItem "[r]emove [l]ight source" removeLightSource))
+            ))
 
     @:keep
     (method :Void _strobe [:Bool skipping :Bool prop :String actorOrPropKey :Float strobeSec :Int times &opt :Continuation cc]

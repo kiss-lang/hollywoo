@@ -426,7 +426,7 @@
 
 
     (prop :Map<String,Array<String>> positionsInScene (new Map))
-    (method resolvePosition [:Dynamic position :PositionHolder holder]
+    (method :StagePosition resolvePosition [:Dynamic position :Null<PositionHolder> holder]
         (typeCase [position]
             ([:String positionKey]
                 (let [positionsInThisScene (dictGet positionsInScene sceneKey)]
@@ -436,8 +436,13 @@
                 (case holder
                     ((Actor actor) (dictSet .actorPositionKeys (_currentScene) actor positionKey))
                     ((Prop prop) (dictSet .propPositionKeys (_currentScene) prop positionKey))
-                    (never otherwise))
-                (stagePositions.get positionKey))
+                    (null null))
+
+                (let [pos (stagePositions.get positionKey)]
+                    (ifLet [relativeKey .value (positionRelativity.get positionKey)
+                                anchorPos (resolvePosition relativeKey null)]
+                            (new StagePosition #{anchorPos.x + pos.x;}# #{anchorPos.y + pos.y;}# #{anchorPos.z + pos.z;}#)
+                        pos)))
             ([:StagePosition position]
                 position)
             (otherwise (throw "Not a position or position key: $position"))))
@@ -547,6 +552,7 @@
             :String voiceLineMatchesJson
             :String miscFloatJson
             :String miscIntJson
+            :String positionRelativityJson
         ]
         [
             :JsonMap<StagePosition> stagePositions
@@ -561,6 +567,8 @@
                 (new JsonMap miscFloatJson (new HFloat 0))
             :JsonMap<HInt> miscInts
                 (new JsonMap miscIntJson (new HInt 0))
+            :JsonStringMap positionRelativity
+                (new JsonMap positionRelativityJson (new JsonableString ""))
             :Map<String,String> sceneMusic (new Map)
             :Map<String,Float> sceneMusicVolume (new Map)
             &mut :String playingSceneMusic null
@@ -634,7 +642,12 @@
                                 (director.defineStagePosition
                                     .camera (_currentScene)
                                     ->[:StagePosition position] {
-                                        (stagePositions.put positionKey position)
+                                        // store it relative:
+                                        (stagePositions.put positionKey
+                                            (ifLet [relativeKey .value (positionRelativity.get positionKey)
+                                                        anchorPos (resolvePosition relativeKey null)]
+                                                    (new StagePosition (- position.x anchorPos.x) (- position.y anchorPos.y) (- position.z anchorPos.z))
+                                                position))
                                         // Reposition actors and props on the fly
                                         (let [scene (_currentScene)
                                                 characterIterator (scene.characters.keys)
@@ -647,7 +660,7 @@
                                                                 (director.hideProp prop.prop scene.camera
                                                                     (makeCC
                                                                         (when (scene.propPositionKeys.exists key)
-                                                                            (set prop.position (stagePositions.get (dictGet scene.propPositionKeys key))))
+                                                                            (set prop.position (resolvePosition (dictGet scene.propPositionKeys key) null)))
                                                                         (director.showProp prop.prop prop.position ReAppearance scene.camera nextProp)))
                                                             (cc)))
                                                     (nextCharacter []
@@ -657,13 +670,27 @@
                                                                     (director.hideCharacter character scene.camera
                                                                         (makeCC
                                                                             (when (scene.actorPositionKeys.exists key)
-                                                                                (set character.stagePosition (stagePositions.get (dictGet scene.actorPositionKeys key))))
+                                                                                (set character.stagePosition (resolvePosition (dictGet scene.actorPositionKeys key) null)))
                                                                             (director.showCharacter character ReAppearance scene.camera nextCharacter))))
                                                             (nextProp)))
                                                 ]
                                                 (nextCharacter)))
                                     }
-                                    (stagePositions.get positionKey))))
+                                    (resolvePosition positionKey null))))
+                (shortcutHandler.registerItem "[d]efine [r]elativity of position"
+                    ->cc
+                        (director.chooseString "Which position?" (dictGet positionsInScene sceneKey)
+                            ->positionKey
+                                (director.chooseString "Make relative to which position?"
+                                                        (let [keys (.copy (dictGet positionsInScene sceneKey))]
+                                                            (keys.remove positionKey)
+                                                            keys)
+                                                        ->relativeKey
+                                                            (let [pos (resolvePosition positionKey null)
+                                                                    anchorPos (resolvePosition relativeKey null)]
+                                                                (positionRelativity.put positionKey (new JsonableString relativeKey))
+                                                                (stagePositions.put positionKey
+                                                                    (new StagePosition (- pos.x anchorPos.x) (- pos.y anchorPos.y) (- pos.z anchorPos.z)))))))
                 (shortcutHandler.registerItem "[d]efine [l]ight source"
                     ->cc
                         (director.defineLightSource

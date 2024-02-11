@@ -429,6 +429,7 @@
     (method :StagePosition resolvePosition [:Dynamic position :Null<PositionHolder> holder]
         (typeCase [position]
             ([:String positionKey]
+                (assert sceneKey "resolvePosition() should be called in the context of a scene")
                 (let [positionsInThisScene (dictGet positionsInScene sceneKey)]
                     (unless (positionsInThisScene.contains positionKey)
                         (positionsInThisScene.push positionKey)))

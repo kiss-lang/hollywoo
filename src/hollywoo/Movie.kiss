@@ -132,15 +132,18 @@
             (return))
         (processIntercut skipping actorName
             (makeCC
-                (let [isSilentType
+                (let [inputDelayKey (inputKey)
+                        isSilentType
                             ?(whenLet [(Custom type _ _) dialogType]
                                 (_silentCustomDialogTypes.exists type))
                         cc ->:Void
-                            (delay skipping DELAY_BETWEEN_VOICE_TRACKS ->:Void {
-                                (director.hideDialog) (cc)
-                            })
+                            {(stopWaitForInput inputDelayKey)
+                                (delay skipping DELAY_BETWEEN_VOICE_TRACKS ->:Void {
+                                    (director._hideDialog) (cc)
+                                })}
                         &mut customCC cc
                         &mut skipCC cc]
+                    // TODO when "VO for silent dialogue" is enabled play supertext vo
                     // When an actorName is given, check for a voiced line to play.
                     // Otherwise, assume it is un-voiced super text
                     (when (and (or !isSilentType playVoiceTracksForSilentDialog) actorName (< 0 (count voiceTracks)))
@@ -179,13 +182,16 @@
                                     (director.playVoiceTrack (dictGet voiceTracks trackKey) 1 start end cc)
                                     (set skipCC ->:Void {(director.stopVoiceTrack (dictGet voiceTracks trackKey)) (cc)}))
                                 (otherwise)))
+
                     (case dialogType
                         ((Custom type character args)
                             (ifLet [handler (dictGet _customDialogTypeHandlers type)]
                                     (let [cleanupFunc (handler actorName character wryly args text skipCC customCC)]
                                         (set _hideCustomDialog cleanupFunc))
                                 (throw "No handler for custom dialog type $type")))
-                        (otherwise (director.showDialog actorName dialogType wryly text skipCC)))))))
+                        (otherwise
+                            (startWaitForInput skipCC inputDelayKey)
+                            (director._showDialog actorName dialogType wryly text skipCC)))))))
 
     (defMacro withIndexedPath [pathVar typeDefaultDir &body body]
         (#if (or sys hxnodejs)
@@ -832,7 +838,24 @@
                     (set lastDelay key)
                     (set lastDelayLength lengthFloat)
                     lengthFloat))
-            (never otherwise))))
+            (never otherwise)))
+
+    (method inputKey []
+        (uuid.Uuid.v4))
+
+    (prop &mut currentInputKey "")
+    (method :String startWaitForInput [:Continuation cc &opt :String key]
+        (when currentInputKey
+            (director._stopWaitForInput))
+        (unless key
+            (set key (inputKey)))
+        (set currentInputKey key)
+        (director._startWaitForInput cc)
+        key)
+
+    (method stopWaitForInput [:String key]
+        (when (= currentInputKey key)
+            (director._stopWaitForInput))))
 
 // END Parent class definitions
 
@@ -903,7 +926,8 @@
     (when skipping
         (cc)
         (return))
-    (let [sec (resolveDelay length)]
+    (let [sec (resolveDelay length)
+            key (inputKey)]
         (case delayHandling
             (Auto
                 (TimerWithPause.delay cc sec))
@@ -911,24 +935,26 @@
                 (let [autoDelay
                             (TimerWithPause.delay
                                 ->{
-                                    (director.stopWaitForInput cc)
+                                    (stopWaitForInput key)
                                     (cc)
                                 }
                                 sec)]
-                    (director.startWaitForInput
+                    (startWaitForInput
                         ->{
-                            (director.stopWaitForInput cc)
+                            (stopWaitForInput key)
                             (TimerWithPause.stop autoDelay)
                             (cc)
-                        })))
+                        }
+                        key)))
             (Manual
                 (director.showInputIcon)
-                (director.startWaitForInput
+                (startWaitForInput
                     ->{
                         (director.hideInputIcon)
-                        (director.stopWaitForInput cc)
+                        (stopWaitForInput key)
                         (cc)
-                    }))
+                    }
+                    key))
             (otherwise (throw "Unsupported delay type $delayHandling")))))
 
 (hollywooMethod :Void watchModeDelay [:Bool skipping :Dynamic length :Continuation cc]
@@ -987,19 +1013,20 @@
             (return))
         (unless looping
             (handleCaption skipping name))
-        (let [sound (dictGet sounds name)]
+        (let [sound (dictGet sounds name)
+                inputDelayKey (inputKey)]
             (withFunctions
                 [
                     (:Void innerCC []
                         (unless looping
                             (director.stopSound sound)
                             (unless dontWaitForInput
-                                (director.stopWaitForInput innerCC)))
+                                (stopWaitForInput inputDelayKey)))
                         (cc))
                 ]
                 (unless (or looping dontWaitForInput)
                     (when waitForEnd
-                        (director.startWaitForInput innerCC)))
+                        (startWaitForInput innerCC inputDelayKey)))
                 (director.playSound sound volumeMod (when waitForEnd innerCC))))
         (unless waitForEnd
             (cc))))
@@ -1008,10 +1035,12 @@
     (playSound skipping name cc volumeMod true))
 
 (hollywooMethod awaitPlaySounds [:Bool skipping :Array<String> names :Continuation cc &opt :Float volumeMod]
-    (let [names (names.copy)]
+    (let [names (names.copy)
+            inputDelayKey (inputKey)]
         (localVar &mut currentSound "")
         (localVar endCC
             (makeCC
+                (stopWaitForInput inputDelayKey)
                 (whileLet [soundKey (names.shift)]
                     // This just adds the sounds to the history:
                     (playSound true soundKey (makeCC null) volumeMod false true))
@@ -1021,7 +1050,7 @@
         (when skipping
             (endCC)
             (return))
-        (director.startWaitForInput endCC)
+        (startWaitForInput endCC inputDelayKey)
         (_ccForEach names
             ->[name cc]
                 {
@@ -1206,11 +1235,12 @@
     (when skipping
         (cc)
         (return))
-    (let [cc ->{(director.hideTitleCard)(cc)}]
+    (let [inputDelayKey (inputKey)
+            cc ->{(stopWaitForInput inputDelayKey)(director.hideTitleCard)(cc)}]
         (director.showTitleCard lines
             (makeCC
                 // Allow skipping
-                (director.startWaitForInput cc)
+                (startWaitForInput cc inputDelayKey)
                 (delay skipping time cc)))))
 
 // TODO themed titleCard (wait for song or sound)
@@ -1220,16 +1250,14 @@
     (dialogHistory.push (Super text))
     (if skipping
             (cc)
-        // Skip voice track handling:
-        // TODO don't skip it when playing silent dialog
-        (director.showDialog "" Super "" text cc)))
+        (showDialog skipping "" Super "" text cc)))
 
 (hollywooMethod timedSuperText [:Bool skipping text :Dynamic sec :Continuation cc]
     (when skipping
         (dialogHistory.push (Super text))
         (cc)
         (return))
-    (let [cc ->:Void {(director.hideDialog) (cc)}]
+    (let [cc ->:Void {(director._hideDialog) (cc)}]
         (superText skipping text cc)
         (delay skipping sec cc)))
 

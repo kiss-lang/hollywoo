@@ -81,12 +81,12 @@ interface Director<Set, Actor, Sound, Song, Prop, VoiceTrack, Camera, LightSourc
     function playVoiceTrack(track:VoiceTrack, volumeMod:Float, start:Float, end:Float, cc:Continuation):Void;
     function stopVoiceTrack(track:VoiceTrack):Void;
 
-    function startWaitForInput(cc:Continuation):Void;
-    function stopWaitForInput(cc:Continuation):Void;
+    function _startWaitForInput(cc:Continuation):Void;
+    function _stopWaitForInput():Void;
 
     function showExpression(actor:Actor, wryly:String):Void;
-    function showDialog(speakerName:String, type:SpeechType<Actor>, wryly:String, dialog:String, cc:Continuation):Void;
-    function hideDialog():Void;
+    function _showDialog(speakerName:String, type:SpeechType<Actor>, wryly:String, dialog:String, cc:Continuation):Void;
+    function _hideDialog():Void;
 
     function showTitleCard(text:Array<String>, cc:Continuation):Void;
     function hideTitleCard():Void;

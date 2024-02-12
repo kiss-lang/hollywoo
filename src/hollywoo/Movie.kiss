@@ -928,7 +928,7 @@
         (return))
     (let [sec (resolveDelay length)
             key (inputKey)]
-        (case [delayHandling dontWaitForInput]
+        (case [delayHandling ?dontWaitForInput]
             ([Auto _]
                 (TimerWithPause.delay cc sec))
             ((or [AutoWithSkip _] [Manual true])

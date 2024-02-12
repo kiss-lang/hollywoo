@@ -810,7 +810,7 @@
                 (director.showCaption desc id)
                 (delay skipping (min MAX_CAPTION_DURATION (director.getSoundLength sound))
                     (makeCC
-                        (director.hideCaption id))))))
+                        (director.hideCaption id))) true)))
 
     (method :Int miscInt [:String key &opt :Int defaultVal]
         (if (miscInts.exists key)
@@ -922,31 +922,33 @@
         (set _hideCustomDialog null))
     (cc))
 
-(hollywooMethod :Void delay [:Bool skipping :Dynamic length :Continuation cc]
+(hollywooMethod :Void delay [:Bool skipping :Dynamic length :Continuation cc &opt :Bool dontWaitForInput]
     (when skipping
         (cc)
         (return))
     (let [sec (resolveDelay length)
             key (inputKey)]
-        (case delayHandling
-            (Auto
+        (case [delayHandling dontWaitForInput]
+            ([Auto _]
                 (TimerWithPause.delay cc sec))
-            (AutoWithSkip
+            ((or [AutoWithSkip _] [Manual true])
                 (let [autoDelay
                             (TimerWithPause.delay
                                 ->{
-                                    (stopWaitForInput key)
+                                    (unless dontWaitForInput
+                                        (stopWaitForInput key))
                                     (cc)
                                 }
                                 sec)]
-                    (startWaitForInput
-                        ->{
-                            (stopWaitForInput key)
-                            (TimerWithPause.stop autoDelay)
-                            (cc)
-                        }
-                        key)))
-            (Manual
+                    (unless dontWaitForInput
+                        (startWaitForInput
+                            ->{
+                                (stopWaitForInput key)
+                                (TimerWithPause.stop autoDelay)
+                                (cc)
+                            }
+                            key))))
+            ([Manual false]
                 (director.showInputIcon)
                 (startWaitForInput
                     ->{
@@ -1241,7 +1243,7 @@
             (makeCC
                 // Allow skipping
                 (startWaitForInput cc inputDelayKey)
-                (delay skipping time cc)))))
+                (delay skipping time cc true)))))
 
 // TODO themed titleCard (wait for song or sound)
 
@@ -1259,7 +1261,7 @@
         (return))
     (let [cc ->:Void {(director._hideDialog) (cc)}]
         (superText skipping text cc)
-        (delay skipping sec cc)))
+        (delay skipping sec cc true)))
 
 // TODO themed superText
 
@@ -1299,7 +1301,7 @@
         (cc)
         (return))
     (director.showBlackScreen)
-    (delay skipping seconds ->:Void {(director.hideBlackScreen)(cc)}))
+    (delay skipping seconds ->:Void {(director.hideBlackScreen)(cc)} true))
 
 (hollywooMethod cutToBlack [:Continuation cc]
     (director.showBlackScreen)

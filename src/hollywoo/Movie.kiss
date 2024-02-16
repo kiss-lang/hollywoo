@@ -4,6 +4,12 @@
 (function dynamicArray [&rest :Array<Dynamic> elements]
     elements)
 
+(defMacro unlessCancel [keyName exp]
+    `(lambda [,keyName]
+        (if (= ,keyName CANCEL_COMMAND)
+                (cc)
+            ,exp)))
+
 // This file is designed to be loaded again by subclasses, with macroVar "subclass" set
 (#unless subclass
 
@@ -635,14 +641,10 @@
                         }))
                 (shortcutHandler.registerItem "[d]efine [d]elay" redefineLastDelay)
 
-                (var CANCEL_COMMAND "CANCEL CHOICE")
-                (localFunction withCancel [choices]
+                (prop CANCEL_COMMAND "CANCEL CHOICE")
+                (method withCancel [choices]
                     (.concat [CANCEL_COMMAND] choices))
-                (defMacro unlessCancel [keyName exp]
-                    `(lambda [,keyName]
-                        (if (= ,keyName CANCEL_COMMAND)
-                                (cc)
-                            ,exp)))
+
                 (shortcutHandler.registerItem "[d]efine [m]isc [i]nt"
                     ->cc
                         (director.chooseString "Which misc int?" (withCancel (collect (miscInts.keys)))

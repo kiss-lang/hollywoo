@@ -621,11 +621,18 @@
 
                 (localFunction redefineLastDelay [cc]
                     (set lastCommand redefineLastDelay)
-                    (director.enterString "Redefine $lastDelay from $lastDelayLength sec?"
-                        ->lengthStr
-                            (let [length (Std.parseFloat lengthStr)]
-                                (delayLengths.put lastDelay (new HFloat length))
-                                (cc))))
+                    (if lastDelay
+                            (director.enterString "Redefine $lastDelay from $lastDelayLength sec?"
+                                ->lengthStr
+                                    (let [length (Std.parseFloat lengthStr)]
+                                        (if (Math.isNaN length)
+                                                (print "Failed to parse ${lengthStr}. leaving value the same")
+                                            (delayLengths.put lastDelay (new HFloat length)))
+                                        (cc)))
+                        {
+                            (print "no delay to redefine")
+                            (cc)
+                        }))
                 (shortcutHandler.registerItem "[d]efine [d]elay" redefineLastDelay)
 
                 (shortcutHandler.registerItem "[d]efine [m]isc [i]nt"

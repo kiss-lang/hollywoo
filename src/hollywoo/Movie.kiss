@@ -635,10 +635,18 @@
                         }))
                 (shortcutHandler.registerItem "[d]efine [d]elay" redefineLastDelay)
 
+                (var CANCEL_COMMAND "CANCEL CHOICE")
+                (localFunction withCancel [choices]
+                    (.concat [CANCEL_COMMAND] choices))
+                (defMacro unlessCancel [keyName exp]
+                    `(lambda [,keyName]
+                        (if (= ,keyName CANCEL_COMMAND)
+                                (cc)
+                            ,exp)))
                 (shortcutHandler.registerItem "[d]efine [m]isc [i]nt"
                     ->cc
-                        (director.chooseString "Which misc int?" (collect (miscInts.keys))
-                            ->key
+                        (director.chooseString "Which misc int?" (withCancel (collect (miscInts.keys)))
+                            (unlessCancel key
                                 (withFunctions
                                     [
                                         (defineMiscInt [cc]
@@ -651,12 +659,12 @@
                                                         (cc))))
                                     ]
                                     (set lastCommand defineMiscInt)
-                                    (defineMiscInt cc))))
+                                    (defineMiscInt cc)))))
 
                 (shortcutHandler.registerItem "[d]efine [m]isc [f]loat"
                     ->cc
-                        (director.chooseString "Which misc float?" (collect (miscFloats.keys))
-                            ->key
+                        (director.chooseString "Which misc float?" (withCancel (collect (miscFloats.keys)))
+                            (unlessCancel key
                                 (withFunctions
                                     [
                                         (defineMiscFloat [cc]
@@ -669,12 +677,12 @@
                                                         (cc))))
                                     ]
                                     (set lastCommand defineMiscFloat)
-                                    (defineMiscFloat cc))))
+                                    (defineMiscFloat cc)))))
 
                 (shortcutHandler.registerItem "[d]efine [p]osition"
                     ->cc
-                        (director.chooseString "Which position?" (dictGet positionsInScene sceneKey)
-                            ->positionKey
+                        (director.chooseString "Which position?" (withCancel (dictGet positionsInScene sceneKey))
+                            (unlessCancel positionKey
                                 (withFunctions
                                     [
                                         (defineStagePosition [cc]
@@ -718,28 +726,28 @@
                                                 (resolvePosition positionKey null)))
                                     ]
                                     (set lastCommand defineStagePosition)
-                                    (defineStagePosition cc))))
+                                    (defineStagePosition cc)))))
 
                 (shortcutHandler.registerItem "[d]efine [r]elativity of position"
                     ->cc
-                        (director.chooseString "Which position?" (dictGet positionsInScene sceneKey)
-                            ->positionKey
+                        (director.chooseString "Which position?" (withCancel (dictGet positionsInScene sceneKey))
+                            (unlessCancel positionKey
                                 (withFunctions
                                     [
                                         (defineRelativity [cc]
                                             (director.chooseString "Make relative to which position?"
                                                                     (let [keys (.copy (dictGet positionsInScene sceneKey))]
                                                                         (keys.remove positionKey)
-                                                                        keys)
-                                                                    ->relativeKey
+                                                                        (withCancel keys))
+                                                                    (unlessCancel relativeKey
                                                                         (let [pos (resolvePosition positionKey null)
                                                                                 anchorPos (resolvePosition relativeKey null)]
                                                                             (positionRelativity.put positionKey (new JsonableString relativeKey))
                                                                             (stagePositions.put positionKey
-                                                                                (new StagePosition (- pos.x anchorPos.x) (- pos.y anchorPos.y) (- pos.z anchorPos.z))))))
+                                                                                (new StagePosition (- pos.x anchorPos.x) (- pos.y anchorPos.y) (- pos.z anchorPos.z)))))))
                                     ]
                                     (set lastCommand defineRelativity)
-                                    (defineRelativity cc))))
+                                    (defineRelativity cc)))))
 
                 (localFunction defineLightSource [cc]
                     (set lastCommand defineLightSource)
@@ -759,14 +767,14 @@
                     (let [arr (lightSources.get sceneKey)
                             stringArr (for ls arr (ls.stringify))
                             stringMap (for [key ls] (zipThrow stringArr arr) =>key ls)]
-                        (director.chooseString "Remove which light source?" stringArr
-                            ->choice
+                        (director.chooseString "Remove which light source?" (withCancel stringArr)
+                            (unlessCancel choice
                                 (let [ls (dictGet stringMap choice)]
                                     (arr.elements.remove ls)
                                     (lightSources.put sceneKey arr)
                                     (director.hideLighting)
                                     (director.showLighting .time (_currentScene) arr.elements .camera (_currentScene))
-                                    (cc)))))
+                                    (cc))))))
                 (shortcutHandler.registerItem "[r]emove [l]ight source" removeLightSource))
             ))
 

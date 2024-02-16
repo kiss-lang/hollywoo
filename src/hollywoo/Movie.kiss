@@ -645,7 +645,9 @@
                                             (director.enterString "Redefine $key from ${.value (miscInts.get key)}?"
                                                 ->valStr
                                                     (let [v (Std.parseInt valStr)]
-                                                        (miscInts.put key (new HInt v))
+                                                        (if (= v null)
+                                                                (print "Failed to parse ${valStr}. leaving value the same")
+                                                            (miscInts.put key (new HInt v)))
                                                         (cc))))
                                     ]
                                     (set lastCommand defineMiscInt)
@@ -661,7 +663,9 @@
                                             (director.enterString "Redefine $key from ${.value (miscFloats.get key)}?"
                                                 ->valStr
                                                     (let [v (Std.parseFloat valStr)]
-                                                        (miscFloats.put key (new HFloat v))
+                                                        (if (Math.isNaN v)
+                                                                (print "Failed to parse ${valStr}. leaving value the same")
+                                                            (miscFloats.put key (new HFloat v)))
                                                         (cc))))
                                     ]
                                     (set lastCommand defineMiscFloat)

@@ -889,7 +889,7 @@
 
 // Some real magic happens here. This macro defines a method, AND a reader macro
 // for calling it with skipping and cc passed automatically if cc is an argument.
-// GOTCHA: DO NOT use (method) directly in this file!!
+// GOTCHA: DO NOT use (method) directly in this file outside of the above #unless subclass block!!
 (defMacro hollywooMethod [nameAndType argList &builder b &body body]
     (let [args (expList argList)
             numArgs args.length

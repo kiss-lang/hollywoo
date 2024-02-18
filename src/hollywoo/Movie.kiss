@@ -349,16 +349,19 @@
         (dictSet sounds name s)
         (dictSet soundDescriptions name description))
 
+    (method _ccForEachIterator <>[T] [:Iterator<T> iter :(T,Continuation)->Void do_ :Continuation finalCC]
+        (withFunctions
+            [
+                (:Void doNext []
+                    (if (iter.hasNext)
+                            (do_ (iter.next) doNext)
+                        (finalCC)))
+            ]
+            (doNext)))
+
     (method _ccForEach <>[T] [:Iterable<T> collection :(T,Continuation)->Void do_ :Continuation finalCC]
         (let [:Iterator<T> iter (collection.iterator)]
-            (withFunctions
-                [
-                    (:Void doNext []
-                        (if (iter.hasNext)
-                                (do_ (iter.next) doNext)
-                            (finalCC)))
-                ]
-                (doNext))))
+            (_ccForEachIterator iter do_ finalCC)))
 
     (method _hideCurrentScene [:Continuation cc]
         (if sceneKey

@@ -1027,6 +1027,36 @@
                             .camera (dictGet scenes name)
                             cc)))))))
 
+// Switch scenes but bring all the characters and props from the current one
+(hollywooMethod moveToScene [:Bool skipping :String name :Continuation cc]
+    (case (_currentScene)
+        ((objectWith characters props propOrder actorPositionKeys propPositionKeys)
+            (let [characters (characters.copy)
+                    props (props.copy)
+                    propOrder (propOrder.copy)
+                    actorPositionKeys (actorPositionKeys.copy)
+                    propPositionKeys (propPositionKeys.copy)]
+                (clearCharacters
+                    (makeCC
+                        (clearProps
+                            (makeCC
+                                (setScene skipping name
+                                    (makeCC
+                                        (_ccForEachIterator (characters.keyValueIterator)
+                                            ->[character cc]
+                                                (addCharacter character.key character.value.stagePosition character.value.stageFacing cc)
+                                            (makeCC
+                                                (_ccForEach propOrder
+                                                    ->[propKey cc]
+                                                        (addProp propKey .position (props.get propKey) cc)
+                                                    (makeCC
+                                                        (doFor =>actor posKey actorPositionKeys
+                                                            (dictSet .actorPositionKeys (_currentScene) actor posKey))
+                                                        (doFor =>prop posKey propPositionKeys
+                                                            (dictSet .propPositionKeys (_currentScene) prop posKey))
+                                                        (cc)))))))))))))
+        (never otherwise)))
+
 (hollywooMethod playSound [:Bool skipping :String name :Continuation cc &opt :Float volumeMod :Bool waitForEnd :Bool dontWaitForInput]
     (set volumeMod (or volumeMod 1))
     (assert (<= 0 volumeMod 1))
@@ -1221,9 +1251,6 @@
 
 (hollywooMethod awaitStrobeProp [:Bool skipping :String propName :Float sec :Int times :Continuation cc]
     (_strobe skipping true propName sec times cc))
-
-// TODO moveCharacter remove them, add them to another scene
-// TODO moveCharacterAndFollow remove them, add them to another scene, set that the scene
 
 (hollywooMethod addProp [name :Dynamic position :Continuation cc]
     (let [name (FuzzyMapTools.bestMatch props name)

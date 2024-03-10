@@ -581,8 +581,10 @@
                 (new JsonMap voiceLineMatchesJson (new JsonableString ""))
             :JsonMap<HFloat> miscFloats
                 (new JsonMap miscFloatJson (new HFloat 0))
+            :Map<String,Float->Void> miscFloatChangeEvents (new Map)
             :JsonMap<HInt> miscInts
                 (new JsonMap miscIntJson (new HInt 0))
+            :Map<String,Int->Void> miscIntChangeEvents (new Map)
             :JsonStringMap positionRelativity
                 (new JsonMap positionRelativityJson (new JsonableString ""))
             :Map<String,String> sceneMusic (new Map)
@@ -660,7 +662,12 @@
                                                     (let [v (Std.parseInt valStr)]
                                                         (if (= v null)
                                                                 (print "Failed to parse ${valStr}. leaving value the same")
-                                                            (miscInts.put key (new HInt v)))
+                                                            {
+                                                                (miscInts.put key (new HInt v))
+                                                                (ifLet [onChange (dictGet miscIntChangeEvents key)]
+                                                                    (onChange v))
+                                                            })
+
                                                         (cc))))
                                     ]
                                     (set lastCommand defineMiscInt)
@@ -678,7 +685,11 @@
                                                     (let [v (Std.parseFloat valStr)]
                                                         (if (Math.isNaN v)
                                                                 (print "Failed to parse ${valStr}. leaving value the same")
-                                                            (miscFloats.put key (new HFloat v)))
+                                                            {
+                                                                (miscFloats.put key (new HFloat v))
+                                                                (ifLet [onChange (dictGet miscFloatChangeEvents key)]
+                                                                    (onChange v))
+                                                            })
                                                         (cc))))
                                     ]
                                     (set lastCommand defineMiscFloat)
@@ -836,7 +847,9 @@
                     (makeCC
                         (director.hideCaption id))) true)))
 
-    (method :Int miscInt [:String key &opt :Int defaultVal]
+    (method :Int miscInt [:String key &opt :Int defaultVal :Int->Void onChange]
+        (when onChange
+            (dictSet miscIntChangeEvents key onChange))
         (if (miscInts.exists key)
                 .value (miscInts.get key)
             {
@@ -845,7 +858,9 @@
                 defaultVal
             }))
 
-    (method :Float miscFloat [:String key &opt :Float defaultVal]
+    (method :Float miscFloat [:String key &opt :Float defaultVal :Float->Void onChange]
+        (when onChange
+            (dictSet miscFloatChangeEvents key onChange))
         (if (miscFloats.exists key)
                 .value (miscFloats.get key)
             {

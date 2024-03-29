@@ -99,14 +99,14 @@ def process_chunk(audio_guess, possible_sections, signal_back):
                 cutter.take_audio(audio_guess, line_with_alts, start, end)
                 alts = []
                 for choice in choices[1:]:
-                    start, end = start_and_end(choices[0])
+                    start, end = start_and_end(choice)
                     length = end - start
                     alts.append({'start': cutter.current_sec, 'end': cutter.current_sec + length})
                     line_with_alts['alts'] = alts
                     cutter.take_audio(audio_guess, line_with_alts, start, end)
                 break
             elif choice != '/' and choice in takes:
-                start, end = start_and_end(choices[0])
+                start, end = start_and_end(choice)
                 length = end - start
                 info = {
                     'start': cutter.current_sec,

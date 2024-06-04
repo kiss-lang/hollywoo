@@ -49,14 +49,18 @@ class AudioCutter:
         self.searching_for = None
         self.last_search = None
 
-    def save_and_quit(self, new_wav_file):
+    def save_and_quit(self, new_wav_file, quit=True):
         if len(self.new_json_info) == 0:
             print('not saving -- no audio added.')
         else:
             wavfile.write(new_wav_file, self.framerate, self.new_data)
             with open(new_wav_file.replace(".wav", ".json"), 'w') as f:
                 json.dump(self.new_json_info, f)
-        sys.exit(0)
+        if quit:
+            sys.exit(0)
+    
+    def save(self, new_wav_file):
+        self.save_and_quit(new_wav_file, False)
 
     def audio_and_length(self, start, end):
         start_frame = int(start * self.framerate)
@@ -106,7 +110,7 @@ class AudioCutter:
         if chunk_processor is not None:
             chunk_processor(new_audio_tag, info)
 
-    def process_audio(self, chunk_processor, new_wav_file):
+    def process_audio(self, chunk_processor, new_wav_file, quit=True):
         for (audio_tag, chunk_info) in self.json_info.items():
             # When the AudioCutter is searching for a phrase, skip all audio tags that don't match
             if self.searching_for != None:
@@ -120,7 +124,7 @@ class AudioCutter:
         if self.searching_for != None:
             print(f"{self.searching_for} not found")
         
-        self.save_and_quit(new_wav_file)
+        self.save_and_quit(new_wav_file, quit)
 
     # chunk_processor_v2(audio_tag, chunk_info, signal_back)
     def process_audio_v2(self, chunk_processor, new_wav_file):

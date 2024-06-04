@@ -63,8 +63,15 @@ class AudioCutter:
         end_frame = int(end * self.framerate)
         return self.data[start_frame:end_frame], end - start
 
-    def take_audio(self, tag, info, start, end):
+    def take_audio(self, tag, info, start, end, amplify_by=1.0):
         audio, length = self.audio_and_length(start, end)
+        if amplify_by != 1.0:
+            for idx in range(len(audio)):
+                audio[idx][0] *= amplify_by
+                audio[idx][0] = int(audio[idx][0])
+                audio[idx][1] *= amplify_by
+                audio[idx][1] = int(audio[idx][1])
+
         self.new_data = vstack((self.new_data, audio))
         self.current_sec += length
         self.new_json_info[tag] = info

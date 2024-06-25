@@ -167,14 +167,17 @@
                                         null))
                                 ((objectWith trackKey start end alts)
                                     (case (dictGet altIdx "$actorName $text")
+                                        // First time playing, use first alt:
                                         (null
                                             (dictSet altIdx "$actorName $text" 0)
                                             (set customCC ->:Void {})
                                             (director.playVoiceTrack (dictGet voiceTracks trackKey) 1 start end cc))
+                                        // All alts played, loop back to first alt:
                                         ((when (>= idx alts.length) idx)
                                             (dictSet altIdx "$actorName $text" 0)
                                             (set customCC ->:Void {})
                                             (director.playVoiceTrack (dictGet voiceTracks trackKey) 1 start end cc))
+                                        // Play next alt
                                         (idx
                                             (let [alt (nth alts idx)
                                                     start alt.start

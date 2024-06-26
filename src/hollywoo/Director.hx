@@ -57,6 +57,7 @@ interface Director<Set, Actor, Sound, Song, Prop, VoiceTrack, Camera, LightSourc
     function hideSet(set:Set, camera: Camera, cc:Continuation):Void;
 
     function showLighting(sceneTime:SceneTime, lightSources:Array<LightSource>, camera:Camera):Void;
+    function offsetLightSource(ls:LightSource, offset:StagePosition):LightSource;
     function hideLighting():Void;
 
     function loadActor(path:String):Actor;

@@ -4,6 +4,9 @@
 (function dynamicArray [&rest :Array<Dynamic> elements]
     elements)
 
+(function opposite [:StagePosition position]
+    (new StagePosition -position.x -position.y -position.z))
+
 (defMacro unlessCancel [keyName exp]
     `(lambda [,keyName]
         (if (= ,keyName CANCEL_COMMAND)
@@ -412,8 +415,22 @@
                                         cc))))))
             (cc)))
 
+    (method _updateLighting []
+        (director.hideLighting)
+        (let [scene (_currentScene)
+                sceneKey (FuzzyMapTools.bestMatch scenes sceneKey) // TODO shouldn't this already be a direct match?
+                sceneLightSources .elements (lightSources.get sceneKey)
+                propLightSources
+                    (Lambda.flatten (for =>propKey prop scene.props
+                                            (if (lightSources.exists propKey)
+                                                    (for ls .elements (lightSources.get propKey)
+                                                        (director.offsetLightSource ls prop.position))
+                                                [])))
+                allLightSources (sceneLightSources.concat propLightSources)]
+            (director.showLighting scene.time allLightSources scene.camera)))
+
     (method _showScene [:Scene<Set,Actor,Prop,Camera> scene :Appearance appearance :Camera camera :Continuation cc]
-        (director.showLighting scene.time .elements (lightSources.get (FuzzyMapTools.bestMatch scenes sceneKey)) camera)
+        
         // Show current scene background
         (director.showSet scene.set scene.time scene.perspective appearance camera
             (makeCC
@@ -819,7 +836,36 @@
                                     (director.hideLighting)
                                     (director.showLighting .time (_currentScene) arr.elements .camera (_currentScene))
                                     (cc))))))
-                (shortcutHandler.registerItem "[r]emove [l]ight source" removeLightSource))
+                (shortcutHandler.registerItem "[r]emove [l]ight source" removeLightSource)
+
+                (localFunction connectLightSourceToProp [cc]
+                    (set lastCommand connectLightSourceToProp)
+                    (let [arr (lightSources.get sceneKey)
+                            stringArr (for ls arr (ls.stringify))
+                            stringMap (for [key ls] (zipThrow stringArr arr) =>key ls)]
+                        (director.chooseString "Connect which light source?" (withCancel stringArr)
+                            (unlessCancel choice
+                                (let [ls (dictGet stringMap choice)
+                                        propsArr (collect (.keys .props (_currentScene)))]
+                                    (director.chooseString "Connect to which prop?" (withCancel propsArr)
+                                        (unlessCancel propChoice
+                                            (let [prop (dictGet .props (_currentScene) propChoice)
+                                                    relativeLS
+                                                        // Make the light source's positions relative to the chosen prop
+                                                        (director.offsetLightSource ls (opposite prop.position))
+                                                    propLightSources
+                                                        (lightSources.get propChoice)]
+                                                // Remove light source from the scene
+                                                (arr.elements.remove ls)
+                                                (lightSources.put sceneKey arr)
+                                                
+                                                // store it in light sources with the prop's key
+                                                (propLightSources.elements.push relativeLS)
+                                                (lightSources.put propChoice propLightSources)
+                                                (_updateLighting)
+                                                (cc)))))))))
+                (shortcutHandler.registerItem "[c]onnect [l]ight source to [p]rop" connectLightSourceToProp))
+
             ))
 
     @:keep
@@ -1301,12 +1347,14 @@
             position (resolvePosition position (Prop name))]
         (.push .propOrder (_currentScene) name)
         (dictSet .props (_currentScene) name (objectWith position prop))
+        (_updateLighting)
         (director.showProp prop position (appearanceFlag shownProps name) .camera (_currentScene) cc)))
 
 (hollywooMethod removeProp [name :Continuation cc]
     (let [name (FuzzyMapTools.bestMatch props name)]
         (.remove .propOrder (_currentScene) name)
         (.remove .props (_currentScene) name)
+        (_updateLighting)
         (director.hideProp (dictGet props name) .camera (_currentScene) cc)))
 
 (hollywooMethod clearProps [:Continuation cc]

@@ -127,7 +127,7 @@
 
     (prop &mut :Void->Void _hideCustomDialog null)
     (var DELAY_BETWEEN_VOICE_TRACKS 0.1)
-    (method :Void showDialog [:Bool skipping actorName dialogType wryly text cc]
+    (method :Void showDialog [:Bool skipping actorName dialogType wryly text cc &opt :Float voCutoffPercent]
         // Hide custom dialog when the next dialog appears unless HIDECUSTOMDIALOG is called manually:
         (when _hideCustomDialog
             (_hideCustomDialog)
@@ -136,6 +136,7 @@
         (when skipping
             (cc)
             (return))
+        (localVar &mut :kiss_tools.TimerWithPause.WrappedTimer cutoffTimer null)
         (processIntercut skipping actorName
             (makeCC
                 (let [inputDelayKey (inputKey)
@@ -144,11 +145,32 @@
                                 (_silentCustomDialogTypes.exists type))
                         cc ->:Void
                             {(stopWaitForInput inputDelayKey)
-                                (delay skipping DELAY_BETWEEN_VOICE_TRACKS ->:Void {
-                                    (director._hideDialog) (cc)
-                                })}
+                                (if cutoffTimer
+                                        // Don't delay between lines if it's an interruption :)
+                                        {
+                                            (TimerWithPause.stop cutoffTimer)
+                                            (director._hideDialog) (cc)
+                                        }
+                                    (delay skipping DELAY_BETWEEN_VOICE_TRACKS ->:Void {
+                                        (director._hideDialog) (cc)
+                                    }))
+                                }
                         &mut customCC cc
                         &mut skipCC cc]
+                    // Return cc if there is no vo cutoff,
+                    // don't if there is (because the end of the track doesn't matter
+                    // if it's been interrupted by the next thing already)
+                    (localFunction setVoCutoff [start end]
+                        (if voCutoffPercent
+                                {
+                                    (set cutoffTimer
+                                        (TimerWithPause.delay
+                                            (makeCC 
+                                                (director._hideDialog) (cc))
+                                            (* voCutoffPercent (- end start))))
+                                    (makeCC null)
+                                }
+                            cc))
                     // TODO when "VO for silent dialogue" is enabled play supertext vo
                     // When an actorName is given, check for a voiced line to play.
                     // Otherwise, assume it is un-voiced super text
@@ -167,28 +189,31 @@
                                         null))
                                 ((objectWith trackKey start end alts)
                                     (case (dictGet altIdx "$actorName $text")
-                                        // First time playing, use first alt:
+                                        // First time playing, use primary track:
                                         (null
                                             (dictSet altIdx "$actorName $text" 0)
                                             (set customCC ->:Void {})
-                                            (director.playVoiceTrack (dictGet voiceTracks trackKey) 1 start end cc))
-                                        // All alts played, loop back to first alt:
+                                            
+                                            (director.playVoiceTrack (dictGet voiceTracks trackKey) 1 start end (setVoCutoff start end)))
+                                        // All alts played, loop back to primary track:
                                         ((when (>= idx alts.length) idx)
                                             (dictSet altIdx "$actorName $text" 0)
                                             (set customCC ->:Void {})
-                                            (director.playVoiceTrack (dictGet voiceTracks trackKey) 1 start end cc))
-                                        // Play next alt
+                                            (setVoCutoff start end)
+                                            (director.playVoiceTrack (dictGet voiceTracks trackKey) 1 start end (setVoCutoff start end)))
+                                        // Play an alt
                                         (idx
                                             (let [alt (nth alts idx)
                                                     start alt.start
                                                     end alt.end]
                                                 (+= (dictGet altIdx "$actorName $text") 1)
                                                 (set customCC ->:Void {})
-                                                (director.playVoiceTrack (dictGet voiceTracks trackKey) 1 start end cc))))
+                                                (setVoCutoff start end)
+                                                (director.playVoiceTrack (dictGet voiceTracks trackKey) 1 start end (setVoCutoff start end)))))
 
                                     (set skipCC ->:Void {(director.stopVoiceTrack (dictGet voiceTracks trackKey)) (cc)}))
                                 ((objectWith trackKey start end)
-                                    (director.playVoiceTrack (dictGet voiceTracks trackKey) 1 start end cc)
+                                    (director.playVoiceTrack (dictGet voiceTracks trackKey) 1 start end (setVoCutoff start end))
                                     (set skipCC ->:Void {(director.stopVoiceTrack (dictGet voiceTracks trackKey)) (cc)}))
                                 (otherwise)))
 
@@ -1341,6 +1366,26 @@
                     actor character.actor]
                 (director.showExpression actor wryly)
                 (showDialog skipping actorName (OnScreen character) wryly text cc)))))
+
+(hollywooMethod interruptedSpeech [:Bool skipping actorName wryly :String text :Continuation cc]
+    (overridePlayMode Watch (makeCC null))
+    // naively guess that the interruption should happen X% of the way through the spoken
+    // line, where X = the position of the last / in the text
+    (let [wrappedCC (makeCC (restorePlayMode cc))
+            slashIndex (text.lastIndexOf "/")]
+        (when (= -1 slashIndex) (throw "interruptedSpeech requires a / in the text to indicate the cutoff point!"))
+        (let [slashPercent (/ slashIndex text.length)
+                // Remove the /
+                text "$(text.substr 0 slashIndex)$(text.substr (+ 1 slashIndex))"
+                // Remove possible double-space left by the /
+                text (StringTools.replace text "  " " ")
+                text (StringTools.replace text "  " " ")]
+            (processIntercut skipping actorName
+                (makeCC
+                    (let [character (dictGet .characters (_currentScene) actorName)
+                            actor character.actor]
+                        (director.showExpression actor wryly)
+                        (showDialog skipping actorName (OnScreen character) wryly text wrappedCC slashPercent)))))))
 
 (hollywooMethod offScreenSpeech [:Bool skipping actorName wryly text :Continuation cc]
     (let [actor (dictGet actors actorName)]

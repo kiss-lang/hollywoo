@@ -420,13 +420,26 @@
         (let [scene (_currentScene)
                 sceneKey (FuzzyMapTools.bestMatch scenes sceneKey) // TODO shouldn't this already be a direct match?
                 sceneLightSources .elements (lightSources.get sceneKey)
-                propLightSources
+                :Array<LightSource> propLightSources
                     (Lambda.flatten (for =>propKey prop scene.props
                                             (if (lightSources.exists propKey)
                                                     (for ls .elements (lightSources.get propKey)
                                                         (director.offsetLightSource ls prop.position))
                                                 [])))
-                allLightSources (sceneLightSources.concat propLightSources)]
+                :Array<LightSource> actorLightSources
+                    (Lambda.flatten (for =>actorKey character scene.characters
+                                            actorKey
+                                            (if (lightSources.exists actorKey)
+                                                    (for ls .elements (lightSources.get actorKey)
+                                                        (director.offsetLightSource ls character.stagePosition))
+                                                [])))
+                :Array<LightSource> allLightSources
+                    (Lambda.flatten
+                        [
+                            sceneLightSources
+                            propLightSources
+                            actorLightSources
+                        ])]
             (director.showLighting scene.time allLightSources scene.camera)))
 
     (method _showScene [:Scene<Set,Actor,Prop,Camera> scene :Appearance appearance :Camera camera :Continuation cc]
@@ -770,7 +783,10 @@
                                                                                     (when (scene.propPositionKeys.exists key)
                                                                                         (set prop.position (resolvePosition (dictGet scene.propPositionKeys key) null)))
                                                                                     (director.showProp prop.prop prop.position ReAppearance scene.camera nextProp)))
-                                                                        (cc)))
+                                                                        {
+                                                                            (_updateLighting)
+                                                                            (cc)
+                                                                        }))
                                                                 (nextCharacter []
                                                                     (if (characterIterator.hasNext)
                                                                             (let [key (characterIterator.next)
@@ -864,9 +880,35 @@
                                                 (lightSources.put propChoice propLightSources)
                                                 (_updateLighting)
                                                 (cc)))))))))
-                (shortcutHandler.registerItem "[c]onnect [l]ight source to [p]rop" connectLightSourceToProp))
+                (shortcutHandler.registerItem "[c]onnect [l]ight source to [p]rop" connectLightSourceToProp)
 
-            ))
+                (localFunction connectLightSourceToActor [cc]
+                    (set lastCommand connectLightSourceToActor)
+                    (let [arr (lightSources.get sceneKey)
+                            stringArr (for ls arr (ls.stringify))
+                            stringMap (for [key ls] (zipThrow stringArr arr) =>key ls)]
+                        (director.chooseString "Connect which light source?" (withCancel stringArr)
+                            (unlessCancel choice
+                                (let [ls (dictGet stringMap choice)
+                                        actorArr (collect (.keys .characters (_currentScene)))]
+                                    (director.chooseString "Connect to which actor?" (withCancel actorArr)
+                                        (unlessCancel actorChoice
+                                            (let [character (dictGet .characters (_currentScene) actorChoice)
+                                                    relativeLS
+                                                        // Make the light source's positions relative to the chosen character
+                                                        (director.offsetLightSource ls (opposite character.stagePosition))
+                                                    actorLightSources
+                                                        (lightSources.get actorChoice)]
+                                                // Remove light source from the scene
+                                                (arr.elements.remove ls)
+                                                (lightSources.put sceneKey arr)
+                                                
+                                                // store it in light sources with the prop's key
+                                                (actorLightSources.elements.push relativeLS)
+                                                (lightSources.put actorChoice actorLightSources)
+                                                (_updateLighting)
+                                                (cc)))))))))
+                (shortcutHandler.registerItem "[c]onnect [l]ight source to [a]ctor" connectLightSourceToActor))))
 
     @:keep
     (method :Void _strobe [:Bool skipping :Bool prop :String actorOrPropKey :Float strobeSec :Int times &opt :Continuation cc]
@@ -1284,6 +1326,7 @@
         (autoZProcess position
             (makeCC
                 (dictSet .characters (_currentScene) actorName character)
+                (_updateLighting)
                 (director.showCharacter
                     character
                     (appearanceFlag shownCharacters actorName)
@@ -1293,12 +1336,14 @@
 (hollywooMethod removeCharacter [actorName :Continuation cc]
     (let [c (dictGet .characters (_currentScene) actorName)]
         (.remove .characters (_currentScene) actorName)
+        (_updateLighting)
         (director.hideCharacter c .camera (_currentScene) cc)))
 
 (hollywooMethod clearCharacters [:Continuation cc]
     (doFor =>name c .characters (_currentScene)
         (director.hideCharacter c .camera (_currentScene) (makeCC null))
         (.remove .characters (_currentScene) name))
+    (_updateLighting)
     (cc))
 
 // INSTANTLY move a character:

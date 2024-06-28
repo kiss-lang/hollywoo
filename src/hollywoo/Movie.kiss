@@ -428,7 +428,6 @@
                                                 [])))
                 :Array<LightSource> actorLightSources
                     (Lambda.flatten (for =>actorKey character scene.characters
-                                            actorKey
                                             (if (lightSources.exists actorKey)
                                                     (for ls .elements (lightSources.get actorKey)
                                                         (director.offsetLightSource ls character.stagePosition))

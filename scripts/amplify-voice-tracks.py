@@ -17,6 +17,9 @@ json_filename = util.arg(1, usage)
 filenames=list(glob.glob(json_filename)) if '*' in json_filename else [json_filename]
 
 for json_filename in filenames:
+    if json_filename.endswith("-amplified.json"):
+        continue
+
     print(json_filename)
 
     default_wav_name = json_filename.replace('.json', '.wav')

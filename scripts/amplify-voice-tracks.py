@@ -53,6 +53,8 @@ for json_filename in filenames:
 
         can_multiply = abs(min(MAX/ml, MAX/mr))
         print(can_multiply)
+        if can_multiply < 1:
+            can_multiply = 1
         cutter.take_audio(audio_guess, {'start': cutter.current_sec, 'end': cutter.current_sec + length}, timestamp['start'], timestamp['end'], can_multiply)    
 
     cutter.process_audio(process_chunk, new_wav, False)

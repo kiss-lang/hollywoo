@@ -49,10 +49,10 @@ for json_filename in filenames:
         ml = max(audio_left)
         mr = max(audio_right)
 
-        MAX = 32767
+        MAX = 32767 - 1 # going all the way to the top might (?) cause weird blips!
 
-        can_multiply = abs(min(MAX/ml, MAX/mr))
-        print(can_multiply)
+        can_multiply = min(abs(MAX/ml), abs(MAX/mr))
+        print(f'({ml}, {mr}) x {can_multiply} -> ({int(can_multiply * ml)}, {int(can_multiply * mr)})')
         if can_multiply < 1:
             can_multiply = 1
         cutter.take_audio(audio_guess, {'start': cutter.current_sec, 'end': cutter.current_sec + length}, timestamp['start'], timestamp['end'], can_multiply)    

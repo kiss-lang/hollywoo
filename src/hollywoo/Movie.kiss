@@ -1045,11 +1045,13 @@
                                             (b.callSymbol "b.symbol" [(b.str "cc")]))
                                         ((= "skipping" (symbolNameValue arg true true))
                                             (b.callSymbol "b.symbol" [(b.str "skipping")]))
-                                        (true (b.callSymbol "try" [
-                                                (b.callSymbol "read" [(b.symbol "nextLineStream")])
-                                                // optional arguments may not be present:
-                                                (b.callSymbol "catch" [(b.list [(b.symbol "e")]) (b.callSymbol "b.symbol" [(b.str "null")])])
-                                            ])))))]
+                                        (true
+                                            (b.callSymbol "readOr"
+                                                [
+                                                    (b.symbol "nextLineStream")
+                                                    // optional arguments may not be present:
+                                                    (b.callSymbol "b.symbol" [(b.str "null")])
+                                                ])))))]
                     methodCall))
             (#unless subclass @:keep (method ,nameAndType ,argList ,@body))
         }))

@@ -1,6 +1,6 @@
 (importWithDefAlias)
 (import hollywoo.StagePosition)
-(import hollywoo.HFloat)
+(import kiss_tools.JsonFloat)
 (import hollywoo.Director.Appearance)
 (import hollywoo.Director.StageFacing)
 (import hollywoo.Director.Continuation)

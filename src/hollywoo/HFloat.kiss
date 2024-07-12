@@ -1,4 +1,0 @@
-(defNew [&prop :Float value])
-
-(method stringify [] "$value")
-(method parse [:String data] (new HFloat (Std.parseFloat data)))

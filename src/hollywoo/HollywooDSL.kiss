@@ -75,8 +75,16 @@
                         (never otherwise)))
 
                 (set isLoading true)
+                (localFunction :Void done []
+                    (.start (director.shortcutHandler))
+                    (director.hideTitleCard))
+                (localFunction :Void cont []
+                    (set didLoading true)
+                    (set isLoading false)
+                    (print "Had to load ${loadedObjects}/${loadCalls} objects newly")
+                    (cc))
                 (director.showTitleCard ["LOADING"]
-                    (makeCC
+                    (makeCC ->:Void {(done)(cont)}
                         (let [loadVoiceTrack _loadVoiceTrack
                                 addVoiceTrack _addVoiceTrack
                                 noVoiceTracks _noVoiceTracks
@@ -93,14 +101,10 @@
                                 addSound _addSound]
                             (director.doLoading ,preloadFuncs
                                 scavenged
-                                (makeCC
-                                    (set didLoading true)
-                                    (set isLoading false)
-                                    (print "Had to load ${loadedObjects}/${loadCalls} objects newly")
-                                    (cc))
-                                (makeCC
-                                    (.start (director.shortcutHandler))
-                                    (director.hideTitleCard)))))))
+                                (makeCC null
+                                    (cont))
+                                (makeCC null
+                                    (done)))))))
 
             (prop &mut cleanupDone false)
             @:keep
@@ -130,6 +134,20 @@
         (checkPlayMode ->:Void (doPreload cc))))
 (defReaderMacro &eof "" [stream]
     `(#when (StringTools.contains kissFile className)
+        (prop &mut ccAllErrors false)
+        (preload
+            (set onError ->[e quit cc] {
+                (when ccAllErrors (cc)(return))
+                (director.chooseString
+                    "Error ${e}. Continue?"
+                    ["Yes" "Yes to all" "Quit"]
+                    ->choice
+                        (case choice
+                            ("Yes" (cc))
+                            ("Yes to all" (set ccAllErrors true)(cc))
+                            ("No" (quit))
+                            (never otherwise)))
+            }))
 
         // Prepare the interpreter for this movie's cached instructions
         (preload

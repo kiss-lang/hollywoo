@@ -1,5 +1,5 @@
-(defMacro makeCC [&body b]
-    `->:Void [] (runWithErrorChecking ->:Void {,@b}))
+(defMacro makeCC [errorCC &body b]
+    `->:Void [] (runWithErrorChecking ->:Void {,@b} ,errorCC))
 
 (function dynamicArray [&rest :Array<Dynamic> elements]
     elements)
@@ -141,7 +141,7 @@
             (return))
         (localVar &mut :kiss_tools.TimerWithPause.WrappedTimer cutoffTimer null)
         (processIntercut skipping actorName
-            (makeCC
+            (makeCC cc
                 (let [inputDelayKey (inputKey)
                         isSilentType
                             ?(whenLet [(Custom type _ _) dialogType]
@@ -168,10 +168,10 @@
                                 {
                                     (set cutoffTimer
                                         (TimerWithPause.delay
-                                            (makeCC 
+                                            (makeCC cc
                                                 (director._hideDialog) (cc))
                                             (* voCutoffPercent (- end start))))
-                                    (makeCC null)
+                                    (makeCC null null)
                                 }
                             cc))
                     // TODO when "VO for silent dialogue" is enabled play supertext vo
@@ -400,13 +400,13 @@
                 (let [currentScene (dictGet scenes sceneKey)]
                     (director.hideLighting)
                     (director.hideSet currentScene.set currentScene.camera
-                        (makeCC
+                        (makeCC cc
                             // hide current scene characters
                             (_ccForEach
                                 currentScene.characters
                                 ->[:Character<Actor> c :Continuation cc]
                                     (director.hideCharacter c currentScene.camera cc)
-                                (makeCC
+                                (makeCC cc
                                     // hide current scene props, etc.
                                     (_ccForEach
                                         currentScene.props
@@ -445,13 +445,13 @@
         
         // Show current scene background
         (director.showSet scene.set scene.time scene.perspective appearance camera
-            (makeCC
+            (makeCC cc
                 // Show current scene characters
                 (_ccForEach
                     (object iterator ->(scene.characters.keys))
                     ->[:String key :Continuation cc]
                         (director.showCharacter (dictGet scene.characters key) (appearanceFlag shownCharacters key) camera cc)
-                    (makeCC
+                    (makeCC cc
                         // show current scene props, etc.
                         (_ccForEach
                             scene.propOrder
@@ -778,7 +778,7 @@
                                                                     (ifLet [key (propOrder.shift)
                                                                                 prop (dictGet scene.props key)]
                                                                             (director.hideProp prop.prop scene.camera
-                                                                                (makeCC
+                                                                                (makeCC nextProp
                                                                                     (when (scene.propPositionKeys.exists key)
                                                                                         (set prop.position (resolvePosition (dictGet scene.propPositionKeys key) null)))
                                                                                     (director.showProp prop.prop prop.position ReAppearance scene.camera nextProp)))
@@ -791,7 +791,7 @@
                                                                             (let [key (characterIterator.next)
                                                                                     character (dictGet scene.characters key)]
                                                                                 (director.hideCharacter character scene.camera
-                                                                                    (makeCC
+                                                                                    (makeCC nextCharacter
                                                                                         (when (scene.actorPositionKeys.exists key)
                                                                                             (set character.stagePosition (resolvePosition (dictGet scene.actorPositionKeys key) null)))
                                                                                         (director.showCharacter character ReAppearance scene.camera nextCharacter))))
@@ -959,7 +959,7 @@
                         sound (dictGet sounds name)]
                 (director.showCaption desc id)
                 (delay skipping (min MAX_CAPTION_DURATION (director.getSoundLength sound))
-                    (makeCC
+                    (makeCC null
                         (director.hideCaption id))) true)))
 
     (method :Int miscInt [:String key &opt :Int defaultVal :Int->Void onChange]
@@ -1132,26 +1132,26 @@
             (changeSongVolume skipping volumeMod cc))
         (true
             (set playingSceneMusic songKey)
-            (stopSong skipping (makeCC null))
-            (loopSong skipping songKey (makeCC null) volumeMod)
+            (stopSong skipping (makeCC null null))
+            (loopSong skipping songKey (makeCC null null) volumeMod)
             (cc))))
 
 (hollywooMethod setScene [:Bool skipping :String name :Continuation cc]
     (hideCustomDialog
-        (makeCC
+        (makeCC cc
             (_hideCurrentScene
-                (makeCC
+                (makeCC cc
                     (let [name (FuzzyMapTools.bestMatch scenes name)]
                         (set sceneKey name)
                         (ifLet [songKey (dictGet sceneMusic name)]
                                     // Keep the song going if it's the same as current. Otherwise, take over!
                                     (unless (= playingSceneMusic songKey)
                                         (set playingSceneMusic songKey)
-                                        (stopSong skipping (makeCC null))
-                                        (loopSong skipping songKey (makeCC null) (dictGet sceneMusicVolume name)))
+                                        (stopSong skipping (makeCC null null))
+                                        (loopSong skipping songKey (makeCC null null) (dictGet sceneMusicVolume name)))
                             (when playingSceneMusic
                                 (set playingSceneMusic null)
-                                (stopSong skipping (makeCC null))))
+                                (stopSong skipping (makeCC null null))))
                         (unless (positionsInScene.exists sceneKey)
                             (dictSet positionsInScene sceneKey []))
                         (_showScene
@@ -1170,19 +1170,19 @@
                     actorPositionKeys (actorPositionKeys.copy)
                     propPositionKeys (propPositionKeys.copy)]
                 (clearCharacters
-                    (makeCC
+                    (makeCC cc
                         (clearProps
-                            (makeCC
+                            (makeCC cc
                                 (setScene skipping name
-                                    (makeCC
+                                    (makeCC cc
                                         (_ccForEachIterator (characters.keyValueIterator)
                                             ->[character cc]
                                                 (addCharacter character.key character.value.stagePosition character.value.stageFacing cc)
-                                            (makeCC
+                                            (makeCC cc
                                                 (_ccForEach propOrder
                                                     ->[propKey cc]
                                                         (addProp propKey .position (props.get propKey) cc)
-                                                    (makeCC
+                                                    (makeCC cc
                                                         (doFor =>actor posKey actorPositionKeys
                                                             (dictSet .actorPositionKeys (_currentScene) actor posKey))
                                                         (doFor =>prop posKey propPositionKeys
@@ -1228,11 +1228,11 @@
             inputDelayKey (inputKey)]
         (localVar &mut currentSound "")
         (localVar endCC
-            (makeCC
+            (makeCC cc
                 (stopWaitForInput inputDelayKey)
                 (whileLet [soundKey (names.shift)]
                     // This just adds the sounds to the history:
-                    (playSound true soundKey (makeCC null) volumeMod false true))
+                    (playSound true soundKey (makeCC null null) volumeMod false true))
                 (when currentSound
                     (stopSound skipping currentSound cc))
                 (cc)))
@@ -1264,7 +1264,7 @@
             [
                 (:Void playAgain []
                     (playSound false name
-                        (makeCC
+                        (makeCC null
                             (when (loopingSoundPlays.exists name)
                                 (playAgain)))
                         volumeMod
@@ -1326,7 +1326,7 @@
             position (resolvePosition position (Actor actorName))
             character (object stagePosition position stageFacing facing actor (dictGet actors actorName))]
         (autoZProcess position
-            (makeCC
+            (makeCC cc
                 (dictSet .characters (_currentScene) actorName character)
                 (_updateLighting)
                 (director.showCharacter
@@ -1343,7 +1343,7 @@
 
 (hollywooMethod clearCharacters [:Continuation cc]
     (doFor =>name c .characters (_currentScene)
-        (director.hideCharacter c .camera (_currentScene) (makeCC null))
+        (director.hideCharacter c .camera (_currentScene) (makeCC null null))
         (.remove .characters (_currentScene) name))
     (_updateLighting)
     (cc))
@@ -1351,7 +1351,7 @@
 // INSTANTLY move a character:
 (hollywooMethod moveCharacter [actorName :Dynamic newPosition :StageFacing newFacing :Continuation cc]
     (removeCharacter actorName
-        (makeCC
+        (makeCC cc
             (addCharacter actorName newPosition newFacing cc))))
 
 // INSTANTLY swap characters
@@ -1365,11 +1365,11 @@
             bsp b.stagePosition
             bsf b.stageFacing]
         (removeCharacter actorNameA
-            (makeCC
+            (makeCC cc
                 (removeCharacter actorNameB
-                    (makeCC
+                    (makeCC cc
                         (addCharacter actorNameA bsp bsf
-                            (makeCC
+                            (makeCC cc
                                 (addCharacter actorNameB asp asf cc)))))))))
 
 // Strobe and continue the script:
@@ -1429,7 +1429,7 @@
     (let [inputDelayKey (inputKey)
             cc ->{(stopWaitForInput inputDelayKey)(director.hideTitleCard)(cc)}]
         (director.showTitleCard lines
-            (makeCC
+            (makeCC cc
                 // Allow skipping
                 (startWaitForInput cc inputDelayKey)
                 (delay skipping time cc true)))))
@@ -1456,17 +1456,17 @@
 
 (hollywooMethod normalSpeech [:Bool skipping actorName wryly text :Continuation cc]
     (processIntercut skipping actorName
-        (makeCC
+        (makeCC cc
             (let [character (dictGet .characters (_currentScene) actorName)
                     actor character.actor]
                 (director.showExpression actor wryly)
                 (showDialog skipping actorName (OnScreen character) wryly text cc)))))
 
 (hollywooMethod interruptedSpeech [:Bool skipping actorName wryly :String text :Continuation cc]
-    (overridePlayMode Watch (makeCC null))
+    (overridePlayMode Watch (makeCC null null))
     // naively guess that the interruption should happen X% of the way through the spoken
     // line, where X = the position of the last / in the text
-    (let [wrappedCC (makeCC (restorePlayMode cc))
+    (let [wrappedCC (makeCC cc (restorePlayMode cc))
             slashIndex (text.lastIndexOf "/")]
         (when (= -1 slashIndex) (throw "interruptedSpeech requires a / in the text to indicate the cutoff point!"))
         (let [slashPercent (/ slashIndex text.length)
@@ -1476,7 +1476,7 @@
                 text (StringTools.replace text "  " " ")
                 text (StringTools.replace text "  " " ")]
             (processIntercut skipping actorName
-                (makeCC
+                (makeCC cc
                     (let [character (dictGet .characters (_currentScene) actorName)
                             actor character.actor]
                         (director.showExpression actor wryly)
@@ -1492,7 +1492,7 @@
 
 (hollywooMethod onPhoneSpeech [:Bool skipping actorName wryly text :Continuation cc]
     (processIntercut skipping actorName
-        (makeCC
+        (makeCC cc
             (showDialog skipping actorName (ifLet [charOnScreen (try (dictGet .characters (_currentScene) actorName) (catch [e] null))]
                                             {
                                                 (director.showExpression charOnScreen.actor wryly)
@@ -1502,7 +1502,7 @@
 
 (hollywooMethod customSpeech [:Bool skipping type actorName wryly args text :Continuation cc]
     (processIntercut skipping actorName
-        (makeCC
+        (makeCC cc
             (showDialog skipping actorName (Custom type (dictGet .characters (_currentScene) actorName) args) wryly text cc))))
 
 (hollywooMethod timedCutToBlack [:Bool skipping :Dynamic seconds :Continuation cc]
@@ -1607,11 +1607,11 @@
     (when skipping
         (cc)
         (return))
-    (playSong skipping songKey (makeCC null) volumeMod)
+    (playSong skipping songKey (makeCC null null) volumeMod)
     (rollCredits
         skipping
         creditsTSV
-        (makeCC
+        (makeCC cc
             (stopSong skipping cc))
         (director.getSongLength (dictGet songs songKey))))
 

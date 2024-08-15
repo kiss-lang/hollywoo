@@ -1460,6 +1460,34 @@
                 (startWaitForInput cc inputDelayKey)
                 (delay skipping time cc true)))))
 
+(hollywooMethod showTitleCard [:Array<String> lines :Continuation cc]
+    (doFor line (filter lines)
+        (dialogHistory.push (Super line)))
+    (director.showTitleCard lines cc)
+    (cc))
+
+(hollywooMethod hideTitleCard [:Continuation cc]
+    (director.hideTitleCard)
+    (cc))
+
+(defMacro timedTitleCardV2 [time lines &opt label]
+    `(commands
+        SHOWTITLECARD ,lines
+        ,(if label `(label ,label) `(cc))
+        DELAY ,time
+        HIDETITLECARD
+        ))
+
+(defReaderMacro "TIMEDTITLECARDV2" [stream]
+    (let [nextLineStream
+                (stream.expect "hollywoo macro line" ->(stream.takeLineAsStream))
+            time (read nextLineStream)
+            lines (read nextLineStream)]
+        (nextLineStream.dropWhitespace)
+        (if (nextLineStream.isEmpty)
+                `(timedTitleCardV2 ,time ,lines)
+            `(timedTitleCardV2 ,time ,lines ,(read nextLineStream)))))
+
 // TODO themed titleCard (wait for song or sound)
 
 

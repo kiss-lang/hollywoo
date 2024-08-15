@@ -77,7 +77,7 @@
                 (set isLoading true)
                 (localFunction :Void done []
                     (.start (director.shortcutHandler))
-                    (director.hideTitleCard))
+                    (director.hideTitleCard true))
                 (localFunction :Void cont []
                     (set didLoading true)
                     (set isLoading false)
@@ -104,7 +104,7 @@
                                 (makeCC null
                                     (cont))
                                 (makeCC null
-                                    (done)))))))
+                                    (done))))) true))
 
             (prop &mut cleanupDone false)
             @:keep

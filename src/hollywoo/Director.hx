@@ -89,8 +89,8 @@ interface Director<Set, Actor, Sound, Song, Prop, VoiceTrack, Camera, LightSourc
     function _showDialog(speakerName:String, type:SpeechType<Actor>, wryly:String, dialog:String, cc:Continuation):Void;
     function _hideDialog():Void;
 
-    function showTitleCard(text:Array<String>, cc:Continuation):Void;
-    function hideTitleCard():Void;
+    function showTitleCard(text:Array<String>, cc:Continuation, ?loading:Bool):Void;
+    function hideTitleCard(?loading:Bool):Void;
 
     function showBlackScreen():Void;
     function hideBlackScreen():Void;

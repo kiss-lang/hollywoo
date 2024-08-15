@@ -1449,6 +1449,8 @@
     (cc))
 
 (hollywooMethod timedTitleCard [:Bool skipping :Dynamic time :Array<String> lines :Continuation cc]
+    (doFor line (filter lines)
+        (dialogHistory.push (Super line)))
     (when skipping
         (cc)
         (return))

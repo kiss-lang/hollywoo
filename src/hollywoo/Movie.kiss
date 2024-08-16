@@ -1035,7 +1035,9 @@
 
     (method stopWaitForInput [:String key]
         (when (= currentInputKey key)
-            (director._stopWaitForInput))))
+            (director._stopWaitForInput)))
+            
+    (method :Void subclassDoPreload [] 0))
 
 // END Parent class definitions
 

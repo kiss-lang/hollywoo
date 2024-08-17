@@ -442,23 +442,25 @@
             (director.showLighting scene.time allLightSources scene.camera)))
 
     (method _showScene [:Scene<Set,Actor,Prop,Camera> scene :Appearance appearance :Camera camera :Continuation cc]
-        
-        // Show current scene background
-        (director.showSet scene.set scene.time scene.perspective appearance camera
+        (let [cc
             (makeCC cc
-                // Show current scene characters
-                (_ccForEach
-                    (object iterator ->(scene.characters.keys))
-                    ->[:String key :Continuation cc]
-                        (director.showCharacter (dictGet scene.characters key) (appearanceFlag shownCharacters key) camera cc)
-                    (makeCC cc
-                        // show current scene props, etc.
-                        (_ccForEach
-                            scene.propOrder
-                            ->[:String propKey :Continuation cc]
-                                (let [p (dictGet scene.props propKey)]
-                                    (director.showProp p.prop p.position ReAppearance .camera (_currentScene) cc))
-                            cc))))))
+                (_updateLighting)
+                (cc))]
+            // Show current scene background
+            (director.showSet scene.set scene.time scene.perspective appearance camera
+                (makeCC cc
+                    // Show current scene characters
+                    (_ccForEach
+                        (object iterator ->(scene.characters.keys))
+                        ->[:String key :Continuation cc]
+                            (director.showCharacter (dictGet scene.characters key) (appearanceFlag shownCharacters key) camera cc)
+                        (makeCC cc
+                            // show current scene props, etc.
+                            (_ccForEach
+                                ->[:String propKey :Continuation cc]
+                                    (let [p (dictGet scene.props propKey)]
+                                        (director.showProp p.prop p.position ReAppearance .camera (_currentScene) cc))
+                                cc)))))))
 
     (prop &mut :Bool paused false)
     (prop &mut :Continuation onComplete null)
@@ -852,8 +854,7 @@
                             (let [arr (lightSources.get sceneKey)]
                                 (arr.elements.push source)
                                 (lightSources.put sceneKey arr)
-                                (director.hideLighting)
-                                (director.showLighting .time (_currentScene) arr.elements .camera (_currentScene))
+                                (_updateLighting)
                                 (cc))
                         }))
                 (shortcutHandler.registerItem "[d]efine [l]ight source" defineLightSource)
@@ -870,8 +871,7 @@
                                 (let [ls (dictGet stringMap choice)]
                                     (arr.elements.remove ls)
                                     (lightSources.put sceneKey arr)
-                                    (director.hideLighting)
-                                    (director.showLighting .time (_currentScene) arr.elements .camera (_currentScene))
+                                    (_updateLighting)
                                     (cc))))))
                 (shortcutHandler.registerItem "[r]emove [l]ight source" removeLightSource)
 

@@ -1420,6 +1420,9 @@
     (let [name (FuzzyMapTools.bestMatch props name)
             prop (dictGet props name)
             position (resolvePosition position (Prop name))]
+        // Very weird fix for a not wholly understood bug:
+        (when (.contains .propOrder (_currentScene) name)
+            (.remove .propOrder (_currentScene) name))
         (.push .propOrder (_currentScene) name)
         (dictSet .props (_currentScene) name (objectWith position prop))
         (_updateLighting)

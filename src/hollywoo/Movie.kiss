@@ -1060,9 +1060,28 @@
             numArgs args.length
             methodName (symbolNameValue nameAndType true)
             &mut readerMacroStart "$(.toUpperCase methodName) "
-            argSymbolNames (for arg args (symbolNameValue arg true true))]
-        (when (apply and (for name argSymbolNames !(= -1 (.indexOf ["cc" "skipping"] name)))) (set readerMacroStart (StringTools.trim readerMacroStart)))
+            &mut foundOptForTrim false
+            &mut foundOpt false
+            // Trim the readermacro start when the method can be called with no explicit arguments
+            trimmedReaderMacro
+                (if
+                    (apply and
+                        (for arg args
+                            (when (= "opt" (metaNameValue arg)) (set foundOptForTrim true))
+                            (or
+                                foundOpt
+                                (.contains ["cc" "skipping"] (symbolNameValue arg true true)))))
+                        {
+                            (set readerMacroStart (StringTools.trim readerMacroStart))
+                            `(cc)
+                        }
+                    {
+                        `(defReaderMacro ,(StringTools.trim readerMacroStart) [stream &builder b]
+                            (throw "No arguments!"))
+                    })]
+
         `{
+            ,trimmedReaderMacro
             (defReaderMacro ,readerMacroStart [stream &builder b]
                 (let [nextLineStream
                             (stream.expect "hollywoo macro line" ->(stream.takeLineAsStream))
@@ -1070,17 +1089,23 @@
                             (b.callSymbol
                                 ,methodName
                                 ,(for arg args
+                                    (when (= "opt" (metaNameValue arg)) (set foundOpt true))
                                     (cond
                                         ((= "cc" (symbolNameValue arg true true))
                                             (b.callSymbol "b.symbol" [(b.str "cc")]))
                                         ((= "skipping" (symbolNameValue arg true true))
                                             (b.callSymbol "b.symbol" [(b.str "skipping")]))
-                                        (true
+                                        // optional arguments may not be present:
+                                        (foundOpt
                                             (b.callSymbol "readOr"
                                                 [
                                                     (b.symbol "nextLineStream")
-                                                    // optional arguments may not be present:
                                                     (b.callSymbol "b.symbol" [(b.str "null")])
+                                                ]))
+                                        (true
+                                            (b.callSymbol "read"
+                                                [
+                                                    (b.symbol "nextLineStream")
                                                 ])))))]
                     methodCall))
             (#when (or !subclass !avoidDuplicateDefinition) @:keep (method ,nameAndType ,argList ,@body))

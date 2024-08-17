@@ -457,6 +457,7 @@
                         (makeCC cc
                             // show current scene props, etc.
                             (_ccForEach
+                                scene.propOrder
                                 ->[:String propKey :Continuation cc]
                                     (let [p (dictGet scene.props propKey)]
                                         (director.showProp p.prop p.position ReAppearance .camera (_currentScene) cc))

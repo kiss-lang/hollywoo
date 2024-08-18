@@ -1068,7 +1068,7 @@
                         (for arg args
                             (when (= "opt" (metaNameValue arg)) (set foundOptForTrim true))
                             (or
-                                foundOpt
+                                foundOptForTrim
                                 (.contains ["cc" "skipping"] (symbolNameValue arg true true)))))
                         {
                             (set readerMacroStart (StringTools.trim readerMacroStart))

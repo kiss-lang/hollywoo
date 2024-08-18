@@ -1073,7 +1073,7 @@
                                 (.contains ["cc" "skipping"] (symbolNameValue arg true true)))))
                         {
                             (set readerMacroStart (StringTools.trim readerMacroStart))
-                            `(cc)
+                            `{}
                         }
                     {
                         `(defReaderMacro ,(StringTools.trim readerMacroStart) [stream &builder b]

@@ -1057,7 +1057,6 @@
 // GOTCHA: DO NOT use (method) directly in this file outside of the above #unless subclass block!!
 (defMacro hollywooMethod [nameAndType argList &builder b &body body]
     (let [args (expList argList)
-            numArgs args.length
             methodName (symbolNameValue nameAndType true)
             &mut readerMacroStart "$(.toUpperCase methodName) "
             &mut foundOptForTrim false
@@ -1084,7 +1083,7 @@
             ,trimmedReaderMacro
             (defReaderMacro ,readerMacroStart [stream &builder b]
                 (let [nextLineStream
-                            (stream.expect "hollywoo macro line" ->(stream.takeLineAsStream))
+                            (stream.expect "hollywoo method line" ->(stream.takeLineAsStream))
                         methodCall
                             (b.callSymbol
                                 ,methodName
@@ -1103,9 +1102,10 @@
                                                     (b.callSymbol "b.symbol" [(b.str "null")])
                                                 ]))
                                         (true
-                                            (b.callSymbol "read"
+                                            (b.callSymbol "readOr"
                                                 [
                                                     (b.symbol "nextLineStream")
+                                                    (b.callSymbol "b.symbol" [(b.str (+ "MISSING_ARG_" (symbolNameValue arg true true)))])
                                                 ])))))]
                     methodCall))
             (#when (or !subclass !avoidDuplicateDefinition) @:keep (method ,nameAndType ,argList ,@body))

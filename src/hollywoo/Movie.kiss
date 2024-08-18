@@ -1111,6 +1111,57 @@
             (#when (or !subclass !avoidDuplicateDefinition) @:keep (method ,nameAndType ,argList ,@body))
         }))
 
+// Like hollywooMethod but you can pack multiple script instructions into it
+(defMacro hollywooMacro [name argList &builder b &body body]
+    (let [args (expList argList)
+            macroName (symbolNameValue name true)
+            &mut readerMacroStart "$(.toUpperCase macroName) "
+            &mut foundOptForTrim false
+            &mut foundOpt false
+            // Trim the readermacro start when the macro can be called with no explicit arguments
+            trimmedReaderMacro
+                (if
+                    (apply and
+                        (for arg args
+                            (when (= "opt" (metaNameValue arg)) (set foundOptForTrim true))
+                            foundOptForTrim))
+                        {
+                            (set readerMacroStart (StringTools.trim readerMacroStart))
+                            `{}
+                        }
+                    {
+                        `(defReaderMacro ,(StringTools.trim readerMacroStart) [stream &builder b]
+                            (throw "No arguments!"))
+                    })]
+
+        `{
+            ,trimmedReaderMacro
+            (defReaderMacro ,readerMacroStart [stream &builder b]
+                (let [nextLineStream
+                            (stream.expect "hollywoo macro line" ->(stream.takeLineAsStream))
+                        macroCall
+                            (b.callSymbol
+                                ,macroName
+                                ,(for arg args
+                                    (when (= "opt" (metaNameValue arg)) (set foundOpt true))
+                                    (cond
+                                        // optional arguments may not be present:
+                                        (foundOpt
+                                            (b.callSymbol "readOr"
+                                                [
+                                                    (b.symbol "nextLineStream")
+                                                    (b.callSymbol "b.symbol" [(b.str "null")])
+                                                ]))
+                                        (true
+                                            (b.callSymbol "readOr"
+                                                [
+                                                    (b.symbol "nextLineStream")
+                                                    (b.callSymbol "b.symbol" [(b.str (+ "MISSING_ARG_" (symbolNameValue arg true true)))])
+                                                ])))))]
+                    macroCall))
+            (defMacro ,name ,argList ,(b.begin body))
+        }))
+
 (hollywooMethod :Void restorePlayMode [:Continuation cc]
     (set delayHandling
         (case hollywoo.Movie.playMode
@@ -1503,23 +1554,13 @@
     (director.hideTitleCard)
     (cc))
 
-(defMacro timedTitleCardV2 [time lines &opt label]
+(hollywooMacro timedTitleCardV2 [time lines &opt label]
     `(commands
         SHOWTITLECARD ,lines
         ,(if label `(label ,label) `(cc))
         DELAY ,time
         HIDETITLECARD
         ))
-
-(defReaderMacro "TIMEDTITLECARDV2" [stream]
-    (let [nextLineStream
-                (stream.expect "hollywoo macro line" ->(stream.takeLineAsStream))
-            time (read nextLineStream)
-            lines (read nextLineStream)]
-        (nextLineStream.dropWhitespace)
-        (if (nextLineStream.isEmpty)
-                `(timedTitleCardV2 ,time ,lines)
-            `(timedTitleCardV2 ,time ,lines ,(read nextLineStream)))))
 
 // TODO themed titleCard (wait for song or sound)
 

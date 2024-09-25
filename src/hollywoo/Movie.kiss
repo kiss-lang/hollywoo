@@ -299,7 +299,9 @@
     (prop :Array<Array<Dynamic>> propNames [])
     (method :String getPropName [:Prop prop]
         (doFor [_prop name] propNames
-            (when (= prop _prop) (return name)))
+            (unless (.exists .props (_currentScene) name)
+                (continue))
+            (when (director.propEquals prop _prop) (return name)))
         (throw "Couldn't get name of prop $prop in $propNames"))
 
     (method _addProp [name :Prop prop]
@@ -329,7 +331,9 @@
     (prop :Array<Array<Dynamic>> actorNames [])
     (method :String getActorName [:Actor actor]
         (doFor [_actor name] actorNames
-            (when (= actor _actor) (return name)))
+            (unless (.exists .characters (_currentScene) name)
+                (continue))
+            (when (director.actorEquals actor _actor) (return name)))
         (throw "Couldn't get name of actor $actor in $actorNames"))
 
     (method _addActor [name :Actor actor]

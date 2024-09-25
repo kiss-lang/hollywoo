@@ -64,6 +64,9 @@ interface Director<Set, Actor, Sound, Song, Prop, VoiceTrack, Camera, LightSourc
     function showCharacter(character:Character<Actor>, appearance:Appearance, camera:Camera, cc:Continuation):Void;
     function hideCharacter(character:Character<Actor>, camera:Camera, cc:Continuation):Void;
 
+    function propEquals(propA:Prop, propB:Prop):Bool;
+    function actorEquals(propA:Actor, propB:Actor):Bool;
+
     function loadSound(path:String):Sound;
     function playSound(sound:Sound, volumeMod:Float, ?cc:Continuation):Void;
     function getSoundLength(sound:Sound):Float;

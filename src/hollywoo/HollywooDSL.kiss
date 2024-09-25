@@ -150,7 +150,7 @@
                             (case choice
                                 ("Yes" (cc))
                                 ("Yes to all" (set ccAllErrors true)(cc))
-                                ("No" (quit))
+                                ("Quit" (quit))
                                 (never otherwise))))
             }))
 

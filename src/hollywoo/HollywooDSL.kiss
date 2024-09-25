@@ -140,15 +140,18 @@
         (preload
             (set onError ->[e quit cc] {
                 (when ccAllErrors (cc)(return))
-                (director.chooseString
-                    "Error ${e}. Continue?"
-                    ["Yes" "Yes to all" "Quit"]
-                    ->choice
-                        (case choice
-                            ("Yes" (cc))
-                            ("Yes to all" (set ccAllErrors true)(cc))
-                            ("No" (quit))
-                            (never otherwise)))
+                (let [&mut errorString "${e}"]
+                    (when (> errorString.length 80)
+                        (set errorString "$(errorString.substr 0 77)..."))
+                    (director.chooseString
+                        "Error ${errorString}. Continue?"
+                        ["Yes" "Yes to all" "Quit"]
+                        ->choice
+                            (case choice
+                                ("Yes" (cc))
+                                ("Yes to all" (set ccAllErrors true)(cc))
+                                ("No" (quit))
+                                (never otherwise))))
             }))
 
         // Prepare the interpreter for this movie's cached instructions

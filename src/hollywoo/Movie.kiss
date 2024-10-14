@@ -1364,7 +1364,9 @@
             (director.stopSound (dictGet sounds name))))
     (cc))
 
-(hollywooMethod loopSound [:Bool skipping :String name :Continuation cc &opt :Float volumeMod]
+(hollywooMethod loopSound [:Bool skipping :String name :Continuation cc &opt :Float volumeMod :Float decay]
+    (unless decay (set decay 0))
+    (localVar &mut vm (+ volumeMod decay))
     // Even when skipping, create a lambda that plays an iteration of the sound,
     // so if skipping ends and the sound is still supposed to be looping,
     // we can start it!
@@ -1372,11 +1374,15 @@
         (withFunctions
             [
                 (:Void playAgain []
+                    (-= vm decay)
+                    (when (and (> decay 0) (< vm 0))
+                        (loopingSoundPlays.remove name)
+                        (return))
                     (playSound false name
                         (makeCC null
                             (when (loopingSoundPlays.exists name)
                                 (playAgain)))
-                        volumeMod
+                        vm
                         true))
             ]
             (handleCaption skipping name)

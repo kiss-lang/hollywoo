@@ -299,7 +299,7 @@
     (prop :Array<Array<Dynamic>> propNames [])
     (method :String getPropName [:Prop prop]
         (doFor [_prop name] propNames
-            (unless (.exists .props (_currentScene) name)
+            (unless (.existsExactly .props (_currentScene) name)
                 (continue))
             (when (director.propEquals prop _prop) (return name)))
         (throw "Couldn't get name of prop $prop in $propNames"))

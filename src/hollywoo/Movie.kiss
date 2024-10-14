@@ -534,6 +534,7 @@
         (prop :FuzzyMap<FuzzyMap<String>> assetPaths (new FuzzyMap))
         (prop &mut :String assetDir "")
         (prop :Array<Array<String>> loadedCredits [])
+        (prop :Array<String> loadedCreditSources [])
         (method _indexAssetPaths [:String assetDir]
             (set this.assetDir assetDir)
             (let [dirParts (assetDir.split "/")]
@@ -595,7 +596,8 @@
                     tsv "${noExt}.tsv"]
                 (if (dirMap.existsExactly tsv)
                         (let [tsvContent (sys.io.File.getContent (dictGet dirMap tsv))]
-                            (loadedCredits.push (tsvContent.split "\t")))
+                            (loadedCredits.push (tsvContent.split "\t"))
+                            (loadedCreditSources.push tsv))
                     (#when debug (print "Warning: no credit tsv file for ${directory}/${filename}")))
                 (dictGet dirMap basename))))
 
@@ -1695,7 +1697,8 @@
                     (otherwise)))
 
             // Sort loadedCredits by headings and check for missing headings
-            (doFor data loadedCredits
+            (doFor [idx data] (enumerate loadedCredits)
+                (localVar creditSource (nth loadedCreditSources idx))
                 (case data
                     ([heading credit _sourceOrUrl]
                         (ifLet [idx (dictGet headingIndices heading)]
@@ -1721,9 +1724,9 @@
                                             (hdPush ["" credit]))
                                         (never otherwise)))
 
-                            (throw "no heading $heading to place credit $data")))
+                            (throw "no heading $heading to place credit $data from $creditSource")))
                     (otherwise
-                        (throw "unsupported credit data $data"))))
+                        (throw "unsupported credit data $data from $creditSource"))))
 
             // Insert sorted credits under headings
             (doFor heading (reverse headings)

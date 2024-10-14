@@ -445,13 +445,14 @@
                         ])]
             (director.showLighting scene.time allLightSources scene.camera)))
 
-    (method _showScene [:Scene<Set,Actor,Prop,Camera> scene :Appearance appearance :Camera camera :Continuation cc]
+    (method _showScene [:Scene<Set,Actor,Prop,Camera> scene :Appearance appearance :Camera camera :Bool skipping :Continuation cc]
         (let [cc
             (makeCC cc
                 (_updateLighting)
                 (cc))]
             // Show current scene background
             (director.showSet scene.set scene.time scene.perspective appearance camera
+                skipping
                 (makeCC cc
                     // Show current scene characters
                     (_ccForEach
@@ -1267,6 +1268,7 @@
                             (dictGet scenes name)
                             (appearanceFlag shownScenes name)
                             .camera (dictGet scenes name)
+                            skipping
                             cc)))))))
 
 // Switch scenes but bring all the characters and props from the current one

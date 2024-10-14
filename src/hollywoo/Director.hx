@@ -53,7 +53,7 @@ interface Director<Set, Actor, Sound, Song, Prop, VoiceTrack, Camera, LightSourc
 
     function loadSet(path:String):Set;
     function cloneSet(set:Set):Set;
-    function showSet(set:Set, time:SceneTime, perspective:ScenePerspective, appearance:Appearance, camera:Camera, cc:Continuation):Void;
+    function showSet(set:Set, time:SceneTime, perspective:ScenePerspective, appearance:Appearance, camera:Camera, skipping:Bool, cc:Continuation):Void;
     function hideSet(set:Set, camera: Camera, cc:Continuation):Void;
 
     function showLighting(sceneTime:SceneTime, lightSources:Array<LightSource>, camera:Camera):Void;

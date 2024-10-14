@@ -1527,6 +1527,10 @@
 
 (hollywooMethod removeProp [name :Continuation cc]
     (let [name (FuzzyMapTools.bestMatch props name)]
+        (doFor [i pname] propNames
+            (when (= pname name)
+                (propNames.splice i 1)
+                (break)))
         (.remove .propOrder (_currentScene) name)
         (.remove .props (_currentScene) name)
         (_updateLighting)

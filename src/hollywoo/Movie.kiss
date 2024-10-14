@@ -1367,6 +1367,7 @@
     (cc))
 
 (hollywooMethod loopSound [:Bool skipping :String name :Continuation cc &opt :Float volumeMod :Float decay]
+    (unless volumeMod (set volumeMod 1))
     (unless decay (set decay 0))
     // Assume that if it's skipped past, decay would have completed before the skip ends:
     (when (and skipping (> decay 0))

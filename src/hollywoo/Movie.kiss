@@ -101,6 +101,9 @@
                 (dictSet voiceLines actor vl))
             (print "scavenge reused ${c}/${t} objects")))
 
+    // Gets overriden by HollywooDSL
+    (method :Void doCleanup [] 0)
+
     (function :Appearance appearanceFlag [:Map<String,Bool> map :String key]
         (if (dictGet map key)
                 ReAppearance

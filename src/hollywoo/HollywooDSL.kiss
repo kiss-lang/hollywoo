@@ -117,7 +117,7 @@
 
             (prop &mut cleanupDone false)
             @:keep
-            (method doCleanup []
+            (method &override :Void doCleanup []
                 (when cleanupDone (return))
                 (set cleanupDone true)
                 (director.cleanup)

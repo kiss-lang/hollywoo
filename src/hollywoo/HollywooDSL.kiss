@@ -5,12 +5,18 @@
 (import hollywoo.Director.StageFacing)
 (import hollywoo.Director.Continuation)
 
+(defMacroFunction realKey_sym [sym]
+    (let [str (symbolNameValue sym)
+            joined (+ "realKey_" str)]
+        (symbol joined)))
+
 // like withProp, but you promise to call CC yourself in the body:
 (defMacro withPropCC [propKey name &body body]
-    `(let [realKey (kiss.FuzzyMapTools.bestMatch props ,propKey)
-            ,name (dictGet props realKey)]
-        (dictSet dirtyProps realKey true)
-        ,@body))
+    (let [realKey (realKey_sym name)]
+        `(let [,realKey (kiss.FuzzyMapTools.bestMatch props ,propKey)
+                ,name (dictGet props ,realKey)]
+            (dictSet dirtyProps ,realKey true)
+            ,@body)))
         
 (defMacro withProp [propKey name &body body]
     `(withPropCC ,propKey ,name
@@ -20,10 +26,11 @@
 
 // like withActor, but you promise to call CC yourself in the body:
 (defMacro withActorCC [actorKey name &body body]
-    `(let [realKey (kiss.FuzzyMapTools.bestMatch actors ,actorKey)
-            ,name (dictGet actors ,actorKey)]
-        (dictSet dirtyActors realKey true)
-        ,@body))
+    (let [realKey (realKey_sym name)]
+        `(let [,realKey (kiss.FuzzyMapTools.bestMatch actors ,actorKey)
+                ,name (dictGet actors ,realKey)]
+            (dictSet dirtyActors ,realKey true)
+            ,@body)))
 
 (defMacro withActor [actorKey name &body body]
     `(withActorCC ,actorKey ,name

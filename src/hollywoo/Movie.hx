@@ -28,11 +28,6 @@ enum DelayHandling {
     Manual;
 }
 
-enum PositionHolder {
-    Actor(actor:String);
-    Prop(prop:String);
-}
-
 typedef VoiceLine = {
     trackKey:String,
     start:Float,

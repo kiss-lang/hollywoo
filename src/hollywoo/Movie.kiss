@@ -318,19 +318,9 @@
                 (+= loadedObjects 1)
                 (_addActor name (director.loadActor path)))))
 
-
-    (prop :Array<Array<Dynamic>> actorNames [])
-    (method :String getActorName [:Actor actor]
-        (doFor [_actor name] actorNames
-            (unless (.exists .characters (_currentScene) name)
-                (continue))
-            (when (director.actorEquals actor _actor) (return name)))
-        (throw "Couldn't get name of actor $actor in $actorNames"))
-
     (method _addActor [name :Actor actor]
         (assert isLoading)
-        (dictSet actors name actor)
-        (actorNames.push (dynamicArray actor name)))
+        (dictSet actors name actor))
 
     (method _loadSet [name :String path]
         (+= loadCalls 1)
@@ -351,8 +341,7 @@
                                             (director.cloneSet (dictGet sets setKey))
                                         characters
                                             (new FuzzyMap<Character<Actor>>)
-                                        actorPositionKeys (new FuzzyMap<String>)
-                                        propPositionKeys (new FuzzyMap<String>)
+                                        actorAndPropPositionKeys (new FuzzyMap<String>)
                                         propOrder
                                             []
                                         props
@@ -497,7 +486,7 @@
 
 
     (prop :Map<String,Array<String>> positionsInScene (new Map))
-    (method :StagePosition resolvePosition [:Dynamic position :Null<PositionHolder> holder]
+    (method :StagePosition resolvePosition [:Dynamic position :String holder]
         (typeCase [position]
             ([:String positionKey]
                 (assert sceneKey "resolvePosition() should be called in the context of a scene")
@@ -505,10 +494,7 @@
                     (unless (positionsInThisScene.contains positionKey)
                         (positionsInThisScene.push positionKey)))
                 // Store a record in the scene of which actors/props are using which position keys:
-                (case holder
-                    ((Actor actor) (dictSet .actorPositionKeys (_currentScene) actor positionKey))
-                    ((Prop prop) (dictSet .propPositionKeys (_currentScene) prop positionKey))
-                    (null null))
+                (dictSet .actorAndPropPositionKeys (_currentScene) holder positionKey)
 
                 (let [pos (stagePositions.get positionKey)]
                     (ifLet [relativeKey .value (positionRelativity.get positionKey)
@@ -797,8 +783,8 @@
                                                                                     prop (dictGet scene.props key)]
                                                                                 (director.hideProp prop.prop scene.camera
                                                                                     (makeCC nextProp
-                                                                                        (when (scene.propPositionKeys.exists key)
-                                                                                            (set prop.position (resolvePosition (dictGet scene.propPositionKeys key) null)))
+                                                                                        (when (scene.actorAndPropPositionKeys.exists key)
+                                                                                            (set prop.position (resolvePosition (dictGet scene.actorAndPropPositionKeys key) null)))
                                                                                         (director.showProp prop.prop prop.position ReAppearance scene.camera nextProp)))
                                                                             {
                                                                                 (_updateLighting)
@@ -810,8 +796,8 @@
                                                                                         character (dictGet scene.characters key)]
                                                                                     (director.hideCharacter character scene.camera
                                                                                         (makeCC nextCharacter
-                                                                                            (when (scene.actorPositionKeys.exists key)
-                                                                                                (set character.stagePosition (resolvePosition (dictGet scene.actorPositionKeys key) null)))
+                                                                                            (when (scene.actorAndPropPositionKeys.exists key)
+                                                                                                (set character.stagePosition (resolvePosition (dictGet scene.actorAndPropPositionKeys key) null)))
                                                                                             (director.showCharacter character ReAppearance scene.camera nextCharacter))))
                                                                             (nextProp)))
                                                                 ]
@@ -1267,12 +1253,11 @@
 // Switch scenes but bring all the characters and props from the current one
 (hollywooMethod moveToScene [:Bool skipping :String name :Continuation cc]
     (case (_currentScene)
-        ((objectWith characters props propOrder actorPositionKeys propPositionKeys)
+        ((objectWith characters props propOrder actorAndPropPositionKeys)
             (let [characters (characters.copy)
                     props (props.copy)
                     propOrder (propOrder.copy)
-                    actorPositionKeys (actorPositionKeys.copy)
-                    propPositionKeys (propPositionKeys.copy)]
+                    positionKeys (actorAndPropPositionKeys.copy)]
                 (clearCharacters
                     (makeCC cc
                         (clearProps
@@ -1287,10 +1272,8 @@
                                                     ->[propKey cc]
                                                         (addProp propKey .position (props.get propKey) cc)
                                                     (makeCC cc
-                                                        (doFor =>actor posKey actorPositionKeys
-                                                            (dictSet .actorPositionKeys (_currentScene) actor posKey))
-                                                        (doFor =>prop posKey propPositionKeys
-                                                            (dictSet .propPositionKeys (_currentScene) prop posKey))
+                                                        (doFor =>actorOrProp posKey actorAndPropPositionKeys
+                                                            (dictSet .actorAndPropPositionKeys (_currentScene) actorOrProp posKey))
                                                         (cc)))))))))))))
         (never otherwise)))
 
@@ -1439,7 +1422,7 @@
 
 (hollywooMethod addCharacter [actorName :Dynamic position :StageFacing facing :Continuation cc]
     (let [actorName (FuzzyMapTools.bestMatch actors actorName)
-            position (resolvePosition position (Actor actorName))
+            position (resolvePosition position actorName)
             character (object stagePosition position stageFacing facing actor (dictGet actors actorName))]
         (autoZProcess position
             (makeCC cc
@@ -1507,7 +1490,7 @@
 (hollywooMethod addProp [name :Dynamic position :Continuation cc]
     (let [name (FuzzyMapTools.bestMatch props name)
             prop (dictGet props name)
-            position (resolvePosition position (Prop name))]
+            position (resolvePosition position name)]
         // Very weird fix for a not wholly understood bug:
         (when (.contains .propOrder (_currentScene) name)
             (.remove .propOrder (_currentScene) name))

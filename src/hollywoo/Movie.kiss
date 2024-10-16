@@ -296,18 +296,9 @@
                 (+= loadedObjects 1)
                 (_addProp name (director.loadProp path)))))
 
-    (prop :Array<Array<Dynamic>> propNames [])
-    (method :String getPropName [:Prop prop]
-        (doFor [_prop name] propNames
-            (unless (.existsExactly .props (_currentScene) name)
-                (continue))
-            (when (director.propEquals prop _prop) (return name)))
-        (throw "Couldn't get name of prop $prop in $propNames"))
-
     (method _addProp [name :Prop prop]
         (assert isLoading)
-        (dictSet props name prop)
-        (propNames.push (dynamicArray prop name)))
+        (dictSet props name prop))
 
     (method _loadSong [name :String path]
         (+= loadCalls 1)
@@ -1527,10 +1518,6 @@
 
 (hollywooMethod removeProp [name :Continuation cc]
     (let [name (FuzzyMapTools.bestMatch props name)]
-        (doFor [i pname] propNames
-            (when (= pname name)
-                (propNames.splice i 1)
-                (break)))
         (.remove .propOrder (_currentScene) name)
         (.remove .props (_currentScene) name)
         (_updateLighting)

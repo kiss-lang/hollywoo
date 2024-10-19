@@ -1211,6 +1211,13 @@
 (hollywooMethod :Void watchModeDelay [:Bool skipping :Dynamic length :Continuation cc]
     (mode Watch (delay skipping length cc)))
 
+(hollywooMacro overrideDelay [length]
+    `(commands
+        OVERRIDEPLAYMODE Watch
+        DELAY ,length
+        RESTOREPLAYMODE
+        ))
+
 (hollywooMethod setSceneSong [:String scene :String songKey &opt :Float volumeMod :Continuation cc]
     (dictSet sceneMusic scene songKey)
     (dictSet sceneMusicVolume scene volumeMod)

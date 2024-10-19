@@ -1025,7 +1025,29 @@
         (when (= currentInputKey key)
             (director._stopWaitForInput)))
             
-    (method :Void subclassDoPreload [] 0))
+    (method :Void subclassDoPreload [] 0)
+    
+    // This implementation overrides Read mode, so it is for internal/intentional use only, not a hollywooMethod
+    (method timedTitleCard [:Bool skipping :Dynamic time :Array<String> lines :Continuation cc &opt :Bool dontWaitForInput]
+        (doFor line (filter lines)
+            (dialogHistory.push (Super line)))
+        (when skipping
+            (cc)
+            (return))
+        (let [inputDelayKey (inputKey)
+                &mut ccCalled false
+                cc ->{
+                    (when ccCalled (return))
+                    (set ccCalled true)
+                    (stopWaitForInput inputDelayKey)
+                    (director.hideTitleCard)
+                    (cc)
+                }]
+            (director.showTitleCard lines
+                (makeCC cc
+                    // Allow skipping
+                    (startWaitForInput cc inputDelayKey)
+                    (delay skipping time cc true))))))
 
 // END Parent class definitions
 
@@ -1533,27 +1555,6 @@
 (hollywooMethod endIntercut [:Continuation cc]
     (set intercutMap null)
     (cc))
-
-(hollywooMethod timedTitleCard [:Bool skipping :Dynamic time :Array<String> lines :Continuation cc]
-    (doFor line (filter lines)
-        (dialogHistory.push (Super line)))
-    (when skipping
-        (cc)
-        (return))
-    (let [inputDelayKey (inputKey)
-            &mut ccCalled false
-            cc ->{
-                (when ccCalled (return))
-                (set ccCalled true)
-                (stopWaitForInput inputDelayKey)
-                (director.hideTitleCard)
-                (cc)
-            }]
-        (director.showTitleCard lines
-            (makeCC cc
-                // Allow skipping
-                (startWaitForInput cc inputDelayKey)
-                (delay skipping time cc true)))))
 
 (hollywooMethod showTitleCard [:Array<String> lines :Continuation cc]
     (doFor line (filter lines)

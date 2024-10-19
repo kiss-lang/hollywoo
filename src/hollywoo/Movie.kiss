@@ -1541,7 +1541,14 @@
         (cc)
         (return))
     (let [inputDelayKey (inputKey)
-            cc ->{(stopWaitForInput inputDelayKey)(director.hideTitleCard)(cc)}]
+            &mut ccCalled false
+            cc ->{
+                (when ccCalled (return))
+                (set ccCalled true)
+                (stopWaitForInput inputDelayKey)
+                (director.hideTitleCard)
+                (cc)
+            }]
         (director.showTitleCard lines
             (makeCC cc
                 // Allow skipping

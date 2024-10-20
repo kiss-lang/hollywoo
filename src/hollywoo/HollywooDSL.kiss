@@ -171,6 +171,7 @@
 
         (cleanup
             (hideCustomDialog ->:Void {})
+            (set instructions null)
             (#when debug
                 (stopPromptedRecording)))
             

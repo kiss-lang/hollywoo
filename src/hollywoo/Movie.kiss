@@ -582,6 +582,8 @@
                 (dictGet dirMap basename))))
 
     (function choosePlayMode [:Director<Dynamic,Dynamic,Dynamic,Dynamic,Dynamic,Dynamic,Dynamic,Dynamic> director :Void->Void cc]
+        (when director.movie
+            (set director.movie.paused true))
         (director.chooseString
             "Choose a Play Mode\n\nThe Play Mode setting determines how the story will flow forward.\n\nRead mode lets you go at your own pace, stopping after most dialogue until you choose to continue.\n\nWatch mode proceeds automatically like a cutscene or a movie.\n\nYou can still skip dialogue or speed up animations in either mode.\n\nYou can change your decision any time in the Options menu.\n\n"
             ["Read Mode" "Watch Mode (Recommended)"]
@@ -599,7 +601,8 @@
                         (case hollywoo.Movie.playMode
                             (Read Manual)
                             (Watch AutoWithSkip)
-                            (never otherwise))))
+                            (never otherwise)))
+                    (set director.movie.paused false))
 
                 (cc)
             }))

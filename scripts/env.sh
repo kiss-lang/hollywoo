@@ -4,7 +4,7 @@
 source_and_alias() {
 	source env/bin/activate
 	SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-	alias transcribe-voice-track="python ${SCRIPT_DIR}/transcribe-voice-track.py"
+	alias transcribe-voice-tracks="python ${SCRIPT_DIR}/transcribe-voice-tracks.py"
 	alias amplify-voice-tracks="python ${SCRIPT_DIR}/amplify-voice-tracks.py"
 	alias combine-voice-tracks="python ${SCRIPT_DIR}/combine-voice-tracks.py"
 	alias cut-voice-track="python ${SCRIPT_DIR}/cut-voice-track.py"

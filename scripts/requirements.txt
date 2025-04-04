@@ -1,6 +1,6 @@
 wheel
 requests
-vosk
+openai-whisper
 numpy
 scipy
 simpleaudio

@@ -191,8 +191,37 @@ class AudioCutter:
         
         self.save_and_quit(new_wav_file)
 
+from difflib import SequenceMatcher
+def similar(a, b):
+    return SequenceMatcher(None, a, b).ratio()
 
-    
+class FuzzyMap:
+    def __init__(self, threshold = 0.7):
+        self.map = {}
+        self.threshold = threshold
 
+    def put(self, key, value):
+        self.map[key] = value
 
+    def best_match(self, fuzzy_key, throw_if_none = False):
+        best_score = 0
+        best_key = ""
+        for key in self.map.keys():
+            score = similar(key, fuzzy_key)
+            if score > best_score:
+                best_score = score
+                best_key = key
 
+        if len(best_key) > 0:
+            return best_key
+
+        if throw_if_none:
+            raise "None"
+        else:
+            return None
+
+    def fuzzy_get(self, fuzzy_key, throw_if_none = False):
+        match = self.best_match(fuzzy_key, throw_if_none)
+        if match is None:
+            return None
+        return self.map[match]
